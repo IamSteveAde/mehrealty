@@ -1,0 +1,1 @@
+import {getSession} from "@/lib/auth";import {redirect} from "next/navigation";import {AdminHeading} from "@/components/AdminForm";import ProjectEditor from "@/components/ProjectEditor";export default async function Page(){if(!await getSession())redirect("/admin/login");return <><AdminHeading eyebrow="Developments" title="New development"/><ProjectEditor/></>}

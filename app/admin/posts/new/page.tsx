@@ -1,0 +1,1 @@
+import {getSession} from "@/lib/auth";import {redirect} from "next/navigation";import {AdminHeading} from "@/components/AdminForm";import PostEditor from "@/components/PostEditor";export default async function Page(){if(!await getSession())redirect("/admin/login");return <><AdminHeading eyebrow="Journal" title="New article"/><PostEditor/></>}

@@ -1,0 +1,79 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+}
+
+model Project {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  title       String
+  location    String
+  category    String   @default("Residence")
+  status      String   @default("Ongoing")
+  excerpt     String
+  description String   @default("")
+  image       String
+  gallery     String   @default("[]")
+  amenities   String   @default("[]")
+  price       String?
+  bedrooms    String?
+  size        String?
+  featured    Boolean  @default(false)
+  published   Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Post {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  title     String
+  excerpt   String
+  content   String
+  cover     String
+  category  String   @default("Insights")
+  published Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Media {
+  id        String   @id @default(cuid())
+  title     String
+  category  String   @default("Architecture")
+  image     String
+  caption   String   @default("")
+  createdAt DateTime @default(now())
+}
+
+model Enquiry {
+  id                     String   @id @default(cuid())
+  name                   String
+  email                  String
+  phone                  String?
+  interest               String
+  message                String
+  source                 String   @default("Website")
+  enquiryType            String   @default("general")
+  developmentOfInterest  String?
+  conversationSummary     String?
+  status                 String   @default("New")
+  createdAt              DateTime @default(now())
+  read                   Boolean  @default(false)
+}
+
+model Setting {
+  key   String @id
+  value String
+}
