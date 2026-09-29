@@ -54,7 +54,7 @@ function renderInlineMarkdown(text: string) {
   );
 
   return tokens.map((token, index) => {
-    const bold = token.match(/^\*\*(.+)\*\*$/s);
+  const bold = token.match(/^\*\*([\s\S]+)\*\*$/);
 
     if (bold) {
       return (
