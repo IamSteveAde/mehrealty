@@ -19,6 +19,7 @@ import {
   ArrowLeft,
   ArrowRight,
   ArrowUpRight,
+  MapPin,
   MoveUpRight,
 } from "lucide-react";
 import type { Project } from "@prisma/client";
@@ -28,8 +29,8 @@ type FeaturedProjectsSectionProps = {
 };
 
 const EASE = [0.22, 1, 0.36, 1] as const;
-
-const SLIDE_DURATION = 5000;
+const SLIDE_DURATION = 6500;
+const IMAGE_TRANSITION = 1.1;
 
 const PROJECT_GALLERIES = [
   {
@@ -60,8 +61,13 @@ const PROJECT_GALLERIES = [
 function getProjectTitle(project: Project) {
   const data = project as unknown as Record<string, unknown>;
 
-  if (typeof data.name === "string") return data.name;
-  if (typeof data.title === "string") return data.title;
+  if (typeof data.name === "string" && data.name.trim()) {
+    return data.name;
+  }
+
+  if (typeof data.title === "string" && data.title.trim()) {
+    return data.title;
+  }
 
   return "MEH Residence";
 }
@@ -69,7 +75,10 @@ function getProjectTitle(project: Project) {
 function getProjectLocation(project: Project) {
   const data = project as unknown as Record<string, unknown>;
 
-  if (typeof data.location === "string") {
+  if (
+    typeof data.location === "string" &&
+    data.location.trim()
+  ) {
     return data.location;
   }
 
@@ -86,6 +95,20 @@ function getProjectHref(project: Project) {
   return "/developments";
 }
 
+function getProjectDescription(project: Project) {
+  const data = project as unknown as Record<string, unknown>;
+
+  for (const key of ["excerpt", "description", "summary"]) {
+    const value = data[key];
+
+    if (typeof value === "string" && value.trim()) {
+      return value.replace(/<[^>]*>/g, "").slice(0, 240);
+    }
+  }
+
+  return "A distinctive expression of considered architecture, refined spaces and the MEH approach to living.";
+}
+
 function getProjectImages(project: Project, index: number) {
   const data = project as unknown as Record<string, unknown>;
 
@@ -94,21 +117,48 @@ function getProjectImages(project: Project, index: number) {
     data.title,
     data.slug,
   ]
-    .filter(
-      (value): value is string =>
-        typeof value === "string"
-    )
+    .filter((value): value is string => typeof value === "string")
     .join(" ")
     .toLowerCase();
 
-  const matchedGallery = PROJECT_GALLERIES.find(
-    (gallery) =>
-      searchableName.includes(
-        gallery.name.toLowerCase()
-      )
+  const matchedGallery = PROJECT_GALLERIES.find((gallery) =>
+    searchableName.includes(gallery.name.toLowerCase())
   );
 
   if (matchedGallery) return matchedGallery.images;
+
+  const gallery = data.gallery;
+
+  if (Array.isArray(gallery)) {
+    const valid = gallery.filter(
+      (value): value is string =>
+        typeof value === "string" && value.trim().length > 0
+    );
+
+    if (valid.length) return valid;
+  }
+
+  if (typeof gallery === "string") {
+    try {
+      const parsed: unknown = JSON.parse(gallery);
+
+      if (Array.isArray(parsed)) {
+        const valid = parsed.filter(
+          (value): value is string =>
+            typeof value === "string" &&
+            value.trim().length > 0
+        );
+
+        if (valid.length) return valid;
+      }
+    } catch {
+      // Gallery is not a JSON array.
+    }
+  }
+
+  if (typeof data.image === "string" && data.image.trim()) {
+    return [data.image];
+  }
 
   return PROJECT_GALLERIES[
     index % PROJECT_GALLERIES.length
@@ -116,7 +166,7 @@ function getProjectImages(project: Project, index: number) {
 }
 
 /* -------------------------------------------------------
-   ARCHITECTURAL IMAGE SLIDESHOW
+   CINEMATIC IMAGE SLIDESHOW
 ------------------------------------------------------- */
 
 function Slideshow({
@@ -132,21 +182,19 @@ function Slideshow({
 }) {
   const galleryRef = useRef<HTMLDivElement>(null);
 
-  // The slideshow only runs while its gallery is on screen.
   const isInView = useInView(galleryRef, {
-    amount: 0.35,
+    amount: 0.25,
   });
 
   const reducedMotion = Boolean(useReducedMotion());
 
   const [activeIndex, setActiveIndex] = useState(0);
-  const [direction, setDirection] = useState(1);
+  const [slideKey, setSlideKey] = useState(0);
   const [paused, setPaused] = useState(false);
   const [isPageVisible, setIsPageVisible] = useState(true);
 
   const total = images.length;
 
-  // Stop automatic sliding when the browser tab is hidden.
   useEffect(() => {
     const updateVisibility = () => {
       setIsPageVisible(
@@ -169,87 +217,53 @@ function Slideshow({
     };
   }, []);
 
-  const canAutoplay =
+  const canAnimate =
     isInView &&
     isPageVisible &&
     !paused &&
-    !reducedMotion &&
-    total > 1;
+    !reducedMotion;
 
   const next = useCallback(() => {
     if (total <= 1) return;
 
-    setDirection(1);
-    setActiveIndex(
-      (current) => (current + 1) % total
-    );
+    setActiveIndex((current) => (current + 1) % total);
+    setSlideKey((current) => current + 1);
   }, [total]);
 
   const previous = useCallback(() => {
     if (total <= 1) return;
 
-    setDirection(-1);
     setActiveIndex(
       (current) => (current - 1 + total) % total
     );
+    setSlideKey((current) => current + 1);
   }, [total]);
 
   const goTo = useCallback(
     (nextIndex: number) => {
-      if (total <= 1) return;
+      if (total <= 1 || nextIndex === activeIndex) return;
 
-      setDirection(
-        nextIndex >= activeIndex ? 1 : -1
-      );
-
-      setActiveIndex(
-        (nextIndex + total) % total
-      );
+      setActiveIndex((nextIndex + total) % total);
+      setSlideKey((current) => current + 1);
     },
     [activeIndex, total]
   );
 
-  // Wait 5 seconds before changing each slide.
-  // This timer starts only when the gallery is visible.
   useEffect(() => {
-    if (!canAutoplay) return;
+    if (!canAnimate || total <= 1) return;
 
-    const timer = window.setTimeout(() => {
-      next();
-    }, SLIDE_DURATION);
+    const timer = window.setTimeout(next, SLIDE_DURATION);
 
-    return () => {
-      window.clearTimeout(timer);
-    };
-  }, [canAutoplay, activeIndex, next]);
+    return () => window.clearTimeout(timer);
+  }, [canAnimate, activeIndex, next, total]);
 
-  const variants = {
-    enter: (slideDirection: number) => ({
-      opacity: 0,
-      scale: reducedMotion ? 1 : 1.045,
-      x: reducedMotion
-        ? 0
-        : slideDirection * 35,
-    }),
-
-    center: {
-      opacity: 1,
-      scale: 1,
-      x: 0,
-    },
-
-    exit: (slideDirection: number) => ({
-      opacity: 0,
-      scale: reducedMotion ? 1 : 1.02,
-      x: reducedMotion
-        ? 0
-        : slideDirection * -35,
-    }),
-  };
+  // Alternate the zoom direction for a more cinematic result.
+  const zoomIn = slideKey % 2 === 0;
 
   return (
     <div
       ref={galleryRef}
+      aria-label={`${title} image gallery`}
       className="group/gallery relative h-full w-full overflow-hidden bg-[#292a28]"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
@@ -263,69 +277,89 @@ function Slideshow({
           setPaused(false);
         }
       }}
-      aria-label={`${title} image gallery`}
     >
-      {/* IMAGES */}
-      <AnimatePresence
-        mode="popLayout"
-        initial={false}
-        custom={direction}
-      >
+      {/* IMAGE TRANSITIONS */}
+      <AnimatePresence initial={false} mode="sync">
         <motion.div
           key={activeIndex}
-          custom={direction}
-          variants={variants}
-          initial="enter"
-          animate="center"
-          exit="exit"
+          initial={{
+            opacity: 0,
+          }}
+          animate={{
+            opacity: 1,
+          }}
+          exit={{
+            opacity: 0,
+          }}
           transition={{
-            duration: reducedMotion ? 0 : 1.1,
-            ease: EASE,
+            opacity: {
+              duration: reducedMotion ? 0 : IMAGE_TRANSITION,
+              ease: "easeInOut",
+            },
           }}
           className="absolute inset-0"
         >
-          <Image
-            src={images[activeIndex]}
-            alt={`${title} — architectural view ${
-              activeIndex + 1
-            }`}
-            fill
-            priority={
-              priority && activeIndex === 0
-            }
-            sizes="(max-width: 1024px) 100vw, 90vw"
-            className="object-cover"
-          />
+          {/* KEN BURNS ZOOM */}
+          <motion.div
+            className="absolute inset-0"
+            initial={{
+              scale: zoomIn ? 1 : 1.12,
+            }}
+            animate={{
+              scale: canAnimate
+                ? zoomIn
+                  ? 1.12
+                  : 1
+                : zoomIn
+                  ? 1
+                  : 1.12,
+            }}
+            transition={{
+              scale: {
+                duration: SLIDE_DURATION / 1000,
+                ease: "linear",
+              },
+            }}
+          >
+            <Image
+              src={images[activeIndex]}
+              alt={`${title} — architectural view ${
+                activeIndex + 1
+              }`}
+              fill
+              priority={priority && activeIndex === 0}
+              sizes="(max-width: 767px) 100vw, (max-width: 1279px) 55vw, 50vw"
+              className="object-cover"
+            />
+          </motion.div>
         </motion.div>
       </AnimatePresence>
 
       {/* IMAGE GRADIENT */}
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/35 via-transparent to-black/55" />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/45" />
 
-      {/* TOP LEFT */}
-      <div className="absolute left-5 top-5 z-10 flex items-center gap-3 sm:left-8 sm:top-8">
-        <span className="text-[10px] font-medium tracking-[0.2em] text-white/90">
+      {/* TOP LABEL */}
+      <div className="absolute left-4 top-4 z-10 flex items-center gap-2.5 sm:left-6 sm:top-6">
+        <span className="text-[10px] font-medium tracking-[0.18em] text-white/90">
           {String(index + 1).padStart(2, "0")}
         </span>
 
-        <span className="h-px w-8 bg-white/60" />
+        <span className="h-px w-6 bg-white/60" />
 
-        <span className="text-[10px] uppercase tracking-[0.2em] text-white/80">
+        <span className="text-[9px] uppercase tracking-[0.16em] text-white/80">
           MEH Collection
         </span>
       </div>
 
       {/* IMAGE COUNTER */}
-      <div className="absolute right-5 top-5 z-10 flex items-center gap-2 text-white sm:right-8 sm:top-8">
-        <span className="font-[family-name:var(--font-fraunces)] text-[22px] font-light">
+      <div className="absolute right-4 top-4 z-10 flex items-center gap-1.5 text-white sm:right-6 sm:top-6">
+        <span className="font-[family-name:var(--font-fraunces)] text-[19px] font-light">
           {String(activeIndex + 1).padStart(2, "0")}
         </span>
 
-        <span className="text-[11px] text-white/50">
-          /
-        </span>
+        <span className="text-[10px] text-white/50">/</span>
 
-        <span className="text-[11px] text-white/60">
+        <span className="text-[10px] text-white/65">
           {String(total).padStart(2, "0")}
         </span>
       </div>
@@ -337,156 +371,138 @@ function Slideshow({
             type="button"
             onClick={previous}
             aria-label={`Previous ${title} image`}
-            className="absolute left-4 top-1/2 z-20 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/45 bg-black/20 text-white backdrop-blur-md transition-all duration-300 hover:border-[#d6b67c] hover:bg-[#b8975a] hover:text-[#10110e] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white sm:left-7 sm:h-14 sm:w-14"
+            className="absolute left-3 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/45 bg-black/20 text-white backdrop-blur-md transition-all hover:border-[#d6b67c] hover:bg-[#b8975a] hover:text-[#10110e] sm:left-5 sm:h-11 sm:w-11"
           >
-            <ArrowLeft
-              size={20}
-              strokeWidth={1.3}
-            />
+            <ArrowLeft size={18} strokeWidth={1.4} />
           </button>
 
           <button
             type="button"
             onClick={next}
             aria-label={`Next ${title} image`}
-            className="absolute right-4 top-1/2 z-20 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/45 bg-black/20 text-white backdrop-blur-md transition-all duration-300 hover:border-[#d6b67c] hover:bg-[#b8975a] hover:text-[#10110e] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white sm:right-7 sm:h-14 sm:w-14"
+            className="absolute right-3 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/45 bg-black/20 text-white backdrop-blur-md transition-all hover:border-[#d6b67c] hover:bg-[#b8975a] hover:text-[#10110e] sm:right-5 sm:h-11 sm:w-11"
           >
-            <ArrowRight
-              size={20}
-              strokeWidth={1.3}
-            />
+            <ArrowRight size={18} strokeWidth={1.4} />
           </button>
         </>
       )}
 
-      {/* SLIDE PROGRESS */}
-      <div className="absolute bottom-5 left-5 right-5 z-10 flex items-center gap-2 sm:bottom-8 sm:left-8 sm:right-8">
-        {images.map((_, imageIndex) => (
-          <button
-            key={imageIndex}
-            type="button"
-            onClick={() => goTo(imageIndex)}
-            aria-label={`Show ${title} image ${
-              imageIndex + 1
-            }`}
-            aria-current={
-              imageIndex === activeIndex
-                ? "true"
-                : undefined
-            }
-            className="group/dot flex h-6 flex-1 items-center"
-          >
-            <span
-              className={`block h-[2px] w-full transition-all duration-500 ${
-                imageIndex === activeIndex
-                  ? "bg-[#d6b67c]"
-                  : "bg-white/40 group-hover/dot:bg-white/80"
+      {/* SLIDE INDICATORS */}
+      {total > 1 && (
+        <div className="absolute bottom-4 left-4 right-4 z-10 flex items-center gap-1.5 sm:bottom-6 sm:left-6 sm:right-6">
+          {images.map((_, imageIndex) => (
+            <button
+              key={imageIndex}
+              type="button"
+              onClick={() => goTo(imageIndex)}
+              aria-label={`Show ${title} image ${
+                imageIndex + 1
               }`}
-            />
-          </button>
-        ))}
-      </div>
+              aria-current={
+                imageIndex === activeIndex
+                  ? "true"
+                  : undefined
+              }
+              className="group/dot flex h-5 flex-1 items-center"
+            >
+              <span
+                className={`block h-[2px] w-full transition-all duration-500 ${
+                  imageIndex === activeIndex
+                    ? "bg-[#d6b67c]"
+                    : "bg-white/40 group-hover/dot:bg-white/80"
+                }`}
+              />
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
 /* -------------------------------------------------------
-   SILVER TO GOLD ANIMATED PROPERTY PANEL
+   PROPERTY INFORMATION PANEL
 ------------------------------------------------------- */
 
 function PropertyInformation({
-  title,
-  location,
-  href,
+  project,
   index,
 }: {
-  title: string;
-  location: string;
-  href: string;
+  project: Project;
   index: number;
 }) {
-  const reducedMotion = Boolean(useReducedMotion());
+  const title = getProjectTitle(project);
+  const location = getProjectLocation(project);
+  const href = getProjectHref(project);
 
   return (
     <Link
       href={href}
       aria-label={`Explore ${title}`}
-      className="meh-property-link group/property relative isolate block overflow-hidden bg-[#1c1d1b] text-white outline-none"
+      className="group/property relative isolate flex min-w-0 flex-1 flex-col justify-between overflow-hidden bg-[#1c1d1b] px-6 py-8 text-white outline-none sm:px-8 sm:py-10 lg:px-10 lg:py-12 xl:px-14 xl:py-14"
     >
-      {/* SILVER BASE BORDER */}
-      <div className="pointer-events-none absolute inset-0 z-20 border border-[#a7a9a6]/25 transition-colors duration-500 group-hover/property:border-[#d9bd8d]/60 group-focus-visible/property:border-[#d9bd8d]/80" />
+      <div className="pointer-events-none absolute inset-0 border border-[#a7a9a6]/20 transition-colors duration-500 group-hover/property:border-[#d9bd8d]/60" />
 
-      {/* ANIMATED SILVER-TO-GOLD BORDER */}
-      {!reducedMotion && (
-        <div
-          aria-hidden="true"
-          className="meh-property-flow pointer-events-none absolute inset-0 z-20 opacity-0 transition-opacity duration-500 group-hover/property:opacity-100 group-focus-visible/property:opacity-100"
-        />
-      )}
-
-      {/* GOLD GLOW */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_90%_50%,rgba(184,151,90,0.16),transparent_48%)] opacity-0 transition-opacity duration-700 group-hover/property:opacity-100 group-focus-visible/property:opacity-100"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_90%_90%,rgba(184,151,90,0.17),transparent_60%)] opacity-0 transition-opacity duration-700 group-hover/property:opacity-100"
       />
 
-      {/* SUBTLE HORIZONTAL LIGHT */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute bottom-0 left-0 h-px w-0 bg-gradient-to-r from-transparent via-[#e2c78e] to-transparent transition-all duration-1000 group-hover/property:w-full group-focus-visible/property:w-full"
-      />
+      <div className="relative z-10">
+        <div className="mb-7 flex items-center gap-3">
+          <span className="h-px w-7 bg-[#b8975a]" />
 
-      <div className="relative z-10 grid gap-9 px-6 py-10 sm:px-10 sm:py-12 lg:grid-cols-[1fr_auto] lg:items-end lg:gap-16 lg:px-14 lg:py-14">
-        {/* LEFT SIDE */}
-        <div>
-          <div className="mb-6 flex items-center gap-4">
-            <span className="h-px w-9 bg-[#b8975a] transition-all duration-500 group-hover/property:w-14 group-hover/property:bg-[#e1c58d]" />
-
-            <span className="text-[10px] font-medium uppercase tracking-[0.21em] text-[#c8a977]">
-              {location}
-            </span>
-          </div>
-
-          <h3 className="font-[family-name:var(--font-fraunces)] text-[clamp(2.5rem,4.4vw,5.5rem)] font-light leading-[1.07] tracking-[-0.045em] text-[#f5f2ec] transition-colors duration-500 group-hover/property:text-[#f1dfb9]">
-            {title}
-          </h3>
-
-          <p className="mt-5 max-w-[550px] text-[13px] leading-[1.95] text-white/45 transition-colors duration-500 group-hover/property:text-white/65 sm:text-[14px]">
-            A distinctive expression of considered
-            architecture, refined spaces and the MEH
-            approach to living.
-          </p>
-        </div>
-
-        {/* RIGHT SIDE */}
-        <div className="flex items-center justify-between gap-6 lg:justify-end lg:pb-1">
-          <div className="flex flex-col items-start gap-3">
-            <span className="text-[10px] font-medium uppercase tracking-[0.18em] text-white/70 transition-colors duration-500 group-hover/property:text-[#e0c38c]">
-              Explore this development
-            </span>
-
-            <span className="h-px w-24 bg-gradient-to-r from-[#9e9f9b]/45 to-[#b8975a]/70 transition-all duration-700 group-hover/property:w-36 group-hover/property:from-[#c6c8c3] group-hover/property:to-[#e1c58d]" />
-          </div>
-
-          <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-[#aeb0ab]/40 text-[#e4e4df] transition-all duration-500 group-hover/property:rotate-45 group-hover/property:border-[#e1c58d] group-hover/property:bg-[#c5a36c] group-hover/property:text-[#171714] group-hover/property:shadow-[0_0_35px_rgba(197,163,108,0.35)] sm:h-16 sm:w-16">
-            <ArrowUpRight
-              size={23}
-              strokeWidth={1.2}
-            />
+          <span className="text-[10px] font-medium uppercase tracking-[0.18em] text-[#c8a977]">
+            Featured Development
           </span>
         </div>
+
+        <span className="mb-5 block font-mono text-[10px] tracking-[0.15em] text-white/30">
+          RESIDENCE / {String(index + 1).padStart(2, "0")}
+        </span>
+
+        <h3 className="max-w-[600px] font-[family-name:var(--font-fraunces)] text-[clamp(2.2rem,3.5vw,4.7rem)] font-light leading-[1.06] tracking-[-0.045em] text-[#f5f2ec] transition-colors duration-500 group-hover/property:text-[#f1dfb9]">
+          {title}
+        </h3>
+
+        <div className="mt-6 flex items-start gap-2 text-[#c8a977]">
+          <MapPin
+            size={15}
+            strokeWidth={1.5}
+            className="mt-0.5 shrink-0"
+          />
+
+          <span className="text-[11px] uppercase tracking-[0.13em]">
+            {location}
+          </span>
+        </div>
+
+        <p className="mt-7 max-w-[470px] text-[13px] leading-[1.9] text-white/55 sm:text-[14px]">
+          {getProjectDescription(project)}
+        </p>
       </div>
 
-      {/* COLLECTION INDEX */}
-      <span className="pointer-events-none absolute right-6 top-5 font-mono text-[10px] tracking-[0.16em] text-white/20 sm:right-10 lg:right-14">
-        {String(index + 1).padStart(2, "0")}
-      </span>
+      <div className="relative z-10 mt-10 flex items-end justify-between gap-5 border-t border-white/15 pt-6">
+        <div>
+          <span className="mb-2 block text-[9px] uppercase tracking-[0.18em] text-white/45">
+            Discover more
+          </span>
+
+          <span className="text-[11px] font-medium uppercase tracking-[0.12em] text-[#e0c38c]">
+            Explore this development
+          </span>
+        </div>
+
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-[#aeb0ab]/40 text-[#e4e4df] transition-all duration-500 group-hover/property:rotate-45 group-hover/property:border-[#e1c58d] group-hover/property:bg-[#c5a36c] group-hover/property:text-[#171714] sm:h-14 sm:w-14">
+          <ArrowUpRight size={21} strokeWidth={1.3} />
+        </span>
+      </div>
     </Link>
   );
 }
 
 /* -------------------------------------------------------
-   FEATURED DEVELOPMENT
+   SIDE-BY-SIDE FEATURED DEVELOPMENT
 ------------------------------------------------------- */
 
 function FeaturedDevelopment({
@@ -499,8 +515,6 @@ function FeaturedDevelopment({
   const reducedMotion = Boolean(useReducedMotion());
 
   const title = getProjectTitle(project);
-  const location = getProjectLocation(project);
-  const href = getProjectHref(project);
   const images = getProjectImages(project, index);
 
   return (
@@ -508,10 +522,7 @@ function FeaturedDevelopment({
       initial={
         reducedMotion
           ? false
-          : {
-              opacity: 0,
-              y: 40,
-            }
+          : { opacity: 0, y: 32 }
       }
       whileInView={{
         opacity: 1,
@@ -522,13 +533,13 @@ function FeaturedDevelopment({
         amount: 0.1,
       }}
       transition={{
-        duration: 0.95,
+        duration: 0.85,
         ease: EASE,
       }}
-      className="relative"
+      className="relative flex flex-col overflow-hidden shadow-[0_22px_60px_rgba(20,20,18,0.08)] md:min-h-[470px] md:flex-row lg:min-h-[540px] xl:min-h-[600px]"
     >
-      {/* ARCHITECTURAL SLIDESHOW */}
-      <div className="relative aspect-[4/5] overflow-hidden sm:aspect-[16/10] lg:aspect-[21/10]">
+      {/* LEFT: ANIMATED IMAGE GALLERY */}
+      <div className="relative h-[320px] w-full shrink-0 overflow-hidden sm:h-[420px] md:h-auto md:w-[52%] lg:w-[55%]">
         <Slideshow
           images={images}
           title={title}
@@ -537,11 +548,9 @@ function FeaturedDevelopment({
         />
       </div>
 
-      {/* FULLY CLICKABLE DARK PROPERTY PANEL */}
+      {/* RIGHT: DEVELOPMENT DETAILS */}
       <PropertyInformation
-        title={title}
-        location={location}
-        href={href}
+        project={project}
         index={index}
       />
     </motion.article>
@@ -556,7 +565,6 @@ export default function FeaturedProjectsSection({
   projects,
 }: FeaturedProjectsSectionProps) {
   const reducedMotion = Boolean(useReducedMotion());
-
   const featured = projects.slice(0, 2);
 
   if (!featured.length) return null;
@@ -564,9 +572,9 @@ export default function FeaturedProjectsSection({
   return (
     <section
       aria-labelledby="featured-projects-heading"
-      className="relative overflow-hidden bg-[#eeeae3] py-20 text-[#171714] sm:py-28 lg:py-36"
+      className="relative overflow-hidden bg-[#eeeae3] py-16 text-[#171714] sm:py-24 lg:py-32"
     >
-      <div className="mx-auto w-[90%] max-w-[1800px]">
+      <div className="mx-auto w-[90%] max-w-[1600px]">
         {/* SECTION LABEL */}
         <motion.div
           initial={
@@ -574,16 +582,13 @@ export default function FeaturedProjectsSection({
               ? false
               : { opacity: 0, y: 12 }
           }
-          whileInView={{
-            opacity: 1,
-            y: 0,
-          }}
+          whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{
             duration: 0.7,
             ease: EASE,
           }}
-          className="mb-12 flex items-center justify-between gap-4 border-b border-[#171714]/10 pb-6 lg:mb-20"
+          className="mb-10 flex items-center justify-between gap-4 border-b border-[#171714]/10 pb-5 lg:mb-16"
         >
           <div className="flex items-center gap-4">
             <span className="h-px w-9 bg-[#b8975a]" />
@@ -598,34 +603,30 @@ export default function FeaturedProjectsSection({
           </span>
         </motion.div>
 
-        {/* HEADER */}
-        <div className="mb-14 grid items-end gap-9 lg:mb-20 lg:grid-cols-[1.3fr_0.7fr] lg:gap-20">
+        {/* SECTION HEADING */}
+        <div className="mb-12 grid items-end gap-7 lg:mb-16 lg:grid-cols-[1.3fr_0.7fr] lg:gap-16">
           <motion.div
             initial={
               reducedMotion
                 ? false
                 : { opacity: 0, y: 24 }
             }
-            whileInView={{
-              opacity: 1,
-              y: 0,
-            }}
+            whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{
               duration: 0.9,
               ease: EASE,
             }}
           >
-            <span className="mb-5 block font-mono text-[10px] tracking-[0.16em] text-[#a2824f]">
+            <span className="mb-4 block font-mono text-[10px] tracking-[0.16em] text-[#a2824f]">
               01 — THE MEH PORTFOLIO
             </span>
 
             <h2
               id="featured-projects-heading"
-              className="font-[family-name:var(--font-fraunces)] text-[clamp(3rem,6vw,7rem)] font-light leading-[1.02] tracking-[-0.055em]"
+              className="font-[family-name:var(--font-fraunces)] text-[clamp(2.8rem,5vw,6rem)] font-light leading-[1.03] tracking-[-0.055em]"
             >
               Places of
-
               <span className="block italic text-[#b8975a]">
                 distinction.
               </span>
@@ -638,10 +639,7 @@ export default function FeaturedProjectsSection({
                 ? false
                 : { opacity: 0, y: 18 }
             }
-            whileInView={{
-              opacity: 1,
-              y: 0,
-            }}
+            whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{
               duration: 0.8,
@@ -649,7 +647,7 @@ export default function FeaturedProjectsSection({
               ease: EASE,
             }}
           >
-            <p className="max-w-[420px] text-[14px] leading-[2] text-[#171714]/55 sm:text-[15px]">
+            <p className="max-w-[420px] text-[14px] leading-[1.9] text-[#171714]/55 sm:text-[15px]">
               Discover a curated selection of exceptional
               spaces, thoughtfully conceived for the way
               you live and experience the world.
@@ -657,12 +655,12 @@ export default function FeaturedProjectsSection({
 
             <Link
               href="/developments"
-              className="group mt-8 inline-flex items-center gap-5 border-b border-[#b8975a] pb-3 text-[10px] font-medium uppercase tracking-[0.18em] transition-colors hover:text-[#b8975a]"
+              className="group mt-7 inline-flex items-center gap-4 border-b border-[#b8975a] pb-3 text-[10px] font-medium uppercase tracking-[0.16em] transition-colors hover:text-[#b8975a]"
             >
               View all developments
 
               <ArrowUpRight
-                size={18}
+                size={17}
                 strokeWidth={1.2}
                 className="text-[#b8975a] transition-transform group-hover:-translate-y-1 group-hover:translate-x-1"
               />
@@ -670,8 +668,8 @@ export default function FeaturedProjectsSection({
           </motion.div>
         </div>
 
-        {/* DEVELOPMENT GALLERIES */}
-        <div className="space-y-20 sm:space-y-28 lg:space-y-36">
+        {/* DEVELOPMENT CARDS */}
+        <div className="space-y-12 sm:space-y-16 lg:space-y-20">
           {featured.map((project, index) => (
             <FeaturedDevelopment
               key={project.id}
@@ -681,83 +679,24 @@ export default function FeaturedProjectsSection({
           ))}
         </div>
 
-        {/* COLLECTION FOOTER */}
-        <div className="mt-20 flex flex-col gap-7 border-t border-[#171714]/10 pt-9 sm:mt-28 sm:flex-row sm:items-center sm:justify-between">
-          <p className="font-[family-name:var(--font-fraunces)] text-[clamp(1.5rem,2.6vw,2.7rem)] font-light italic text-[#514b41]">
+        {/* FOOTER */}
+        <div className="mt-16 flex flex-col gap-6 border-t border-[#171714]/10 pt-8 sm:mt-20 sm:flex-row sm:items-center sm:justify-between">
+          <p className="font-[family-name:var(--font-fraunces)] text-[clamp(1.4rem,2.4vw,2.4rem)] font-light italic text-[#514b41]">
             Discover spaces that speak for themselves.
           </p>
 
           <Link
             href="/developments"
-            className="group inline-flex items-center gap-5 text-[10px] font-medium uppercase tracking-[0.18em] text-[#171714] transition-colors hover:text-[#b8975a]"
+            className="group inline-flex items-center gap-4 text-[10px] font-medium uppercase tracking-[0.16em] text-[#171714] transition-colors hover:text-[#b8975a]"
           >
             Explore the collection
 
-            <span className="flex h-12 w-12 items-center justify-center rounded-full border border-[#171714]/20 transition-all duration-300 group-hover:border-[#b8975a] group-hover:bg-[#b8975a] group-hover:text-white">
-              <MoveUpRight
-                size={19}
-                strokeWidth={1.3}
-              />
+            <span className="flex h-11 w-11 items-center justify-center rounded-full border border-[#171714]/20 transition-all duration-300 group-hover:border-[#b8975a] group-hover:bg-[#b8975a] group-hover:text-white">
+              <MoveUpRight size={18} strokeWidth={1.3} />
             </span>
           </Link>
         </div>
       </div>
-
-      {/* ANIMATED BORDER STYLES */}
-      <style jsx global>{`
-        .meh-property-flow {
-          padding: 1.5px;
-          background: conic-gradient(
-            from var(--meh-border-angle, 0deg),
-            rgba(180, 184, 181, 0.1) 0deg,
-            rgba(218, 221, 217, 0.8) 55deg,
-            rgba(240, 242, 239, 1) 85deg,
-            rgba(197, 163, 108, 0.85) 135deg,
-            rgba(244, 213, 151, 1) 170deg,
-            rgba(197, 163, 108, 0.12) 230deg,
-            rgba(180, 184, 181, 0.1) 360deg
-          );
-
-          -webkit-mask:
-            linear-gradient(#fff 0 0) content-box,
-            linear-gradient(#fff 0 0);
-
-          -webkit-mask-composite: xor;
-          mask-composite: exclude;
-
-          animation: meh-border-rotate 4s linear infinite;
-        }
-
-        @property --meh-border-angle {
-          syntax: "<angle>";
-          initial-value: 0deg;
-          inherits: false;
-        }
-
-        @keyframes meh-border-rotate {
-          to {
-            --meh-border-angle: 360deg;
-          }
-        }
-
-        .meh-property-link:hover,
-        .meh-property-link:focus-visible {
-          box-shadow:
-            0 0 0 1px rgba(197, 163, 108, 0.12),
-            0 0 35px rgba(197, 163, 108, 0.1),
-            0 25px 70px rgba(17, 17, 15, 0.14);
-        }
-
-        .meh-property-link {
-          transition: box-shadow 700ms ease;
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-          .meh-property-flow {
-            animation: none;
-          }
-        }
-      `}</style>
     </section>
   );
 }

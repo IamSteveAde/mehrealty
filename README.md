@@ -15,6 +15,10 @@ A Next.js 15 / Tailwind CSS luxury real-estate website with a private Prisma-pow
 4. Run `npm run dev` and open http://localhost:3000.
 5. Admin: http://localhost:3000/admin/login, using the credentials set in `.env`.
 
+## Development and build output
+
+`npm run dev` writes to `.next-dev`; `npm run build` and `npm start` use `.next`. This keeps production builds from replacing manifests and webpack chunks used by a running development server. Both directories are generated and ignored by Git. Restart an already-running dev server if it still reports errors referencing the old `.next` directory after updating the configuration.
+
 ## Important launch checklist
 - **All demo images are illustrative Unsplash placeholders, not MEH property photographs.** Replace with licensed/approved property images, and verify all development descriptions, specifications, status and availability before launch.
 - This is a functional starter, not a finished audited production deployment. Use PostgreSQL and managed object storage (S3/Cloudinary) for horizontally scaled/serverless hosting. SQLite and local uploads are suited to a single persistent server.

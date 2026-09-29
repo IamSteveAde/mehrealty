@@ -72,9 +72,20 @@ model Enquiry {
   status                 String   @default("New")
   createdAt              DateTime @default(now())
   read                   Boolean  @default(false)
+  submissionKey          String?  @unique
+  consentAt              DateTime?
+  consentText            String?
 }
 
 model Setting {
   key   String @id
   value String
+}
+
+model PublicRateLimit {
+  key       String   @id
+  count     Int      @default(1)
+  expiresAt DateTime
+
+  @@index([expiresAt])
 }

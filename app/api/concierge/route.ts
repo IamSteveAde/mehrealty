@@ -1,19 +1,77 @@
-import {NextResponse} from "next/server";import {db} from "@/lib/db";import {z} from "zod";
-const requestSchema=z.object({messages:z.array(z.object({role:z.enum(["user","assistant"]),content:z.string().max(2500)})).min(1).max(24)});
-type ConversationMessage={role:"user"|"assistant";content:string};
-const DECLINE_PATTERNS=[/don\'?t\s+want\s+to\s+share/i,/not\s+ready\s+to\s+share/i,/no\s+thanks/i,/prefer\s+not\s+to/i,/not\s+at\s+the\s+moment/i,/I\s+would\s+rather\s+not/i,/I\s+don\'t\s+want\s+to/i];
-const CONSENT_PATTERNS=[/happy\s+to\s+share/i,/yes\s+,?\s*please/i,/please\s+reach\s+me/i,/you\s+can\s+contact\s+me/i,/share\s+my\s+details/i,/my\s+name\s+is\s+[a-z]/i,/i\'m\s+[a-z]/i,/i\s+am\s+[a-z]/i];
-function normalizePhone(value:string){return value.replace(/[^\d+()\-\.\s]/g,"").trim();}
-function normalizeEmail(value:string){return value.trim().toLowerCase();}
-function extractEmail(text:string){const match=text.match(/[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}/i);return match?normalizeEmail(match[0]):null;}
-function extractPhone(text:string){const match=text.match(/(?:\+?\d[\d\s().\-]{7,}\d)/);return match?normalizePhone(match[0]):null;}
-function extractName(text:string){const patterns=[/my\s+name\s+is\s+([A-Z][A-Za-z'\-. ]{1,80})/i,/i\'m\s+([A-Z][A-Za-z'\-. ]{1,80})/i,/i\s+am\s+([A-Z][A-Za-z'\-. ]{1,80})/i];for(const pattern of patterns){const match=text.match(pattern);if(match?.[1])return match[1].trim();}return null;}
-function detectEnquiryType(text:string){if(/invest|investment|yield|return|capital|portfolio/i.test(text))return"investment";if(/view|tour|visit|inspection|schedule|appointment/i.test(text))return"viewing";if(/feature|price|brochure|availability|payment|book|purchase|buy|residence|unit|development/i.test(text))return"development";return"general";}
-function detectProjectMention(text:string,projects:{title:string;location:string}[]){const lower=text.toLowerCase();for(const project of projects){const title=project.title.toLowerCase();const location=project.location.toLowerCase();if(lower.includes(title)||lower.includes(location))return project.title;}return null;}
-function isGeneralExplorationRequest(text:string){const trimmed=text.trim();if(!trimmed)return false;const exploring=/^(?:explore|show|tell me about|what are|browse|look at|find|search for)\b/i.test(trimmed);const propertyWords=/\b(residences?|properties?|developments?|apartments?|homes?|units?)\b/i.test(trimmed);const salesSignals=/\b(price|availability|brochure|invest|yield|payment|buy|purchase|compare|call|consultation|schedule|book|visit|tour|inspection|appointment|pricing|viewing)\b/i.test(trimmed);return exploring && propertyWords && !salesSignals;}
-function buildSummary(messages:ConversationMessage[]){return messages.filter((m)=>m.role==="user").slice(-4).map((m)=>m.content.replace(/\s+/g," ").trim()).filter(Boolean).join(" | ").slice(0,1500);} 
-async function createConciergeLead(messages:ConversationMessage[]){const userMessages=messages.filter((m)=>m.role==="user");if(!userMessages.length)return {status:"ignored" as const};const text=userMessages.map((m)=>m.content).join("\n");const declined=DECLINE_PATTERNS.some((pattern)=>pattern.test(text));if(declined)return {status:"declined" as const};if(isGeneralExplorationRequest(text))return {status:"ignored" as const};const seriousInterest=/price|availability|brochure|view|invest|yield|payment|buy|purchase|compare|call|consultation|schedule|book|visit|development|residence/i.test(text);if(!seriousInterest)return {status:"ignored" as const};const email=extractEmail(text);const phone=extractPhone(text);const name=extractName(text);const consent=CONSENT_PATTERNS.some((pattern)=>pattern.test(text));if(!consent)return {status:"needs_consent" as const,email,phone,name};if(!email||!phone||!name)return {status:"needs_consent" as const,email,phone,name};const projects=await db.project.findMany({where:{published:true},select:{title:true,location:true},take:20});const development=detectProjectMention(text,projects)||null;const enquiryType=detectEnquiryType(text);const summary=buildSummary(messages);const existing=await db.enquiry.findFirst({where:{OR:[{email},{phone:normalizePhone(phone)}]}});const payload={name:name.trim(),email:normalizeEmail(email),phone:normalizePhone(phone),interest:development?`Development enquiry: ${development}`:`AI concierge enquiry: ${enquiryType}`,message:summary,source:"AI Concierge",enquiryType,developmentOfInterest:development,conversationSummary:summary,status:"New",read:false};if(existing){await db.enquiry.update({where:{id:existing.id},data:{...payload,name:name.trim(),email:normalizeEmail(email),phone:normalizePhone(phone),interest:payload.interest,message:payload.message,source:"AI Concierge",enquiryType,developmentOfInterest:development,conversationSummary:summary,status:"New",read:false}});return {status:"updated" as const,lead:{name:name.trim()}};}await db.enquiry.create({data:payload});return {status:"created" as const,lead:{name:name.trim()}};}
-export async function POST(req:Request){try{const {messages}=requestSchema.parse(await req.json());const projects=await db.project.findMany({where:{published:true},select:{title:true,location:true,excerpt:true,status:true,slug:true},take:15});const context=projects.map((x)=>`${x.title} (${x.location}, ${x.status}): ${x.excerpt}. Link: /developments/${x.slug}`).join("\n");const lastText=(messages.at(-1)?.content||"").trim();const leadAttempt=await createConciergeLead(messages);if(leadAttempt.status==="created"||leadAttempt.status==="updated"){const personName=leadAttempt.lead?.name||"there";return NextResponse.json({reply:`Thank you, ${personName}. I've shared your enquiry with the MEH Realty team and they will follow up with the relevant details.`})}if(leadAttempt.status==="needs_consent"){return NextResponse.json({reply:"I can connect you with our team and share the latest information. If you would like a follow-up, may I have your name, email, and phone number so I can pass your enquiry through?"})}if(leadAttempt.status==="declined"){const defaultResponse=/invest|return|yield/.test(lastText)?"I can explain the relevant investment considerations and we can arrange a conversation with our team if you want. For current opportunities, our team can confirm the latest details by email or phone through /contact.":/view|book|visit|tour/.test(lastText)?"I can help with the viewing process. If you would like, we can connect you to the team through /contact and they can arrange a suitable time.":/manage|hospitality/.test(lastText)?"MEH Realty can support property management and hospitality-related enquiries. Explore /services or contact our team directly via /contact for tailored guidance.":`I can introduce you to our developments: ${projects.map((p)=>p.title+" in "+p.location).join("; ")}. Explore /developments or ask me about a specific property. For the latest price and availability details, please contact our team through /contact.`;return NextResponse.json({reply:defaultResponse})}if(!process.env.OPENAI_API_KEY){const fallback=/invest|return|yield/.test(lastText)?"Our team can share current investment information and relevant documentation. Please submit a private enquiry at /contact so an advisor can assist you.":/view|book|visit|tour/.test(lastText)?"We would be delighted to help arrange a viewing. Please use /contact and mention the development you are interested in.":/manage|hospitality/.test(lastText)?"MEH Realty provides property and hospitality-related services. Explore /services or send an enquiry at /contact for tailored assistance.":`I can introduce you to our developments: ${projects.map((p)=>p.title+" in "+p.location).join("; ")}. Explore /developments or ask me about a specific property. For current pricing and availability, our team can confirm details at /contact.`;return NextResponse.json({reply:fallback})}const response=await fetch("https://api.openai.com/v1/chat/completions",{method:"POST",headers:{Authorization:`Bearer ${process.env.OPENAI_API_KEY}`,"Content-Type":"application/json"},body:JSON.stringify({model:process.env.OPENAI_MODEL||"gpt-4o-mini",temperature:.3,max_tokens:360,messages:[{role:"system",content:`You are the MEH Realty digital property concierge. Be warm, concise, refined, and factual. Use only the verified project information below and never invent prices, availability, yields, completion dates, legal guarantees, or bookings. If the information is not published, say so and direct the visitor to /contact for the latest details. If a visitor shows serious interest and is open to follow-up, ask naturally for consent before requesting name, email, and phone. Never request personal details for general questions, and never pester a visitor who declines. Maintain a premium tone and answer in simple, useful language.
-
-Projects:
-${context}`},...messages]})});if(!response.ok){throw new Error("Provider unavailable");}const json=await response.json();const reply=json.choices?.[0]?.message?.content||"Please contact our team at /contact.";return NextResponse.json({reply})}catch(error){console.error("Concierge error",error);return NextResponse.json({reply:"I’m having trouble submitting your request right now. Please contact the MEH Realty team directly through /contact and they can assist with the latest details."})}}
+import { NextResponse } from "next/server";
+import { z } from "zod";
+import { db } from "@/lib/db";
+import { readPublicJson, rateLimit, RequestError } from "@/lib/public-request";
+import { confirms, confirmation, leadSchema, newState, openState, sealState } from "@/lib/concierge/state";
+import { converse } from "@/lib/concierge/ai";
+export const runtime = "nodejs";
+const detailsSchema = leadSchema.pick({name: true, email: true, phone: true, development: true, request: true}).strict();
+const requestSchema = z.object({details: detailsSchema.optional(), message: z.string().trim().min(1).max(2000), state: z.string().max(60000).optional()}).strict();
+const json = (body: unknown, status = 200) => NextResponse.json(body, {status, headers: {"Cache-Control": "no-store", ...(status === 429 ? {"Retry-After": "600"} : {})}});
+export async function POST(req: Request) {
+  let stage = "request_validation";
+  try {
+    const input = requestSchema.parse(await readPublicJson(req));
+    stage = "rate_limit";
+    await rateLimit(req, "concierge", 40);
+    stage = "conversation_state";
+    let state;
+    try { state = input.state ? await openState(input.state) : newState(); }
+    catch { throw new RequestError(409, "This chat has expired. Please start a new chat."); }
+    let reply: string;
+    let leadForm = null;
+    if (input.details) {
+      if (!input.state || !state.draft?.wantsFollowUp || state.submitted) {
+        throw new RequestError(409, "Please request a follow-up in the chat first.");
+      }
+      // Form values are authoritative; never ask the model to reinterpret contact information.
+      state.draft = {...state.draft, ...input.details,
+        summary: `${input.details.development}: ${input.details.request}`.slice(0, 2000)};
+      state.pending = true;
+      reply = confirmation(state.draft);
+    } else if (state.pending && !state.submitted && confirms(input.message)) {
+      const lead = leadSchema.parse(state.draft);
+      // Unique conversation key prevents retries/concurrent confirmations from duplicating or overwriting leads.
+      stage = "save_enquiry";
+      await db.enquiry.upsert({where: {submissionKey: state.id}, update: {}, create: {
+        submissionKey: state.id, name: lead.name, email: lead.email, phone: lead.phone,
+        interest: lead.development, developmentOfInterest: lead.development, message: lead.request,
+        conversationSummary: lead.summary || lead.request, enquiryType: lead.enquiryType,
+        source: "AI Concierge", status: "New", consentAt: new Date(),
+        consentText: `${confirmation(state.draft!)}\nVisitor confirmation: ${input.message}`,
+      }});
+      state.pending = false; state.submitted = true;
+      reply = "Thank you. Your enquiry has been submitted to the MEH Realty team. They’ll follow up using the contact details you confirmed.";
+    } else {
+      stage = "knowledge_lookup";
+      const [projects, settings] = await Promise.all([
+        db.project.findMany({where: {published: true}, orderBy: {title: "asc"}, select: {
+          title: true, slug: true, location: true, category: true, status: true, excerpt: true,
+          description: true, amenities: true, price: true, bedrooms: true, size: true,
+        }}),
+        db.setting.findMany({where: {key: {in: ["phone", "email", "address", "conciergeKnowledge"]}}, select: {key: true, value: true}}),
+      ]);
+      stage = "ai_response";
+      const result = await converse(state, input.message, {
+        projects: projects.map(p => ({...p, url: `/developments/${p.slug}`})), settings,
+      });
+      state.draft = result.draft; state.pending = false;
+      reply = result.reply;
+      if (!state.submitted && result.draft.wantsFollowUp && result.collectNow) {
+        leadForm = Object.fromEntries(["name", "email", "phone", "development", "request"].map(field =>
+          [field, result.draft[field as keyof typeof result.draft] || ""]));
+        reply = "Please enter or check your details in the form below. You can review everything before allowing our team to contact you.";
+      }
+    }
+    state.history = [...state.history, {role: "user" as const, content: input.message}, {role: "assistant" as const, content: reply}].slice(-16);
+    while (Buffer.byteLength(JSON.stringify(state.history), "utf8") > 22000 && state.history.length > 2) state.history.splice(0, 2);
+    stage = "encrypt_response";
+    return json({reply, leadForm, state: await sealState(state), confirmationRequired: state.pending, submitted: state.submitted});
+  } catch (error) {
+    if (error instanceof RequestError) return json({error: error.message}, error.status);
+    if (error instanceof z.ZodError) return json({error: "Please check your details and try again.", fieldErrors: error.flatten().fieldErrors}, 400);
+    // Never log prompts, personal details, provider response bodies or database connection strings.
+    console.error("Concierge request failed", {stage, kind: error instanceof Error ? error.name : "unknown"});
+    return json({error: "I couldn’t complete that request. Please retry, or contact our team through /contact. I haven’t confirmed a submission."}, 503);
+  }
+}
