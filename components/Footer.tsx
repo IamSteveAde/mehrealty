@@ -50,7 +50,7 @@ export default function Footer() {
           <div><span>Considered living. Lasting value.</span><p>More than a place. <em>A way of living.</em></p></div>
           <button type="button" aria-label="Back to top" onClick={() => window.scrollTo({ top: 0, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" })}><ArrowUp size={19} strokeWidth={1.2} /><span>Back to top</span></button>
         </div>
-        <div className="footer-bottom"><p>© {year} MEH Realty Limited. All rights reserved.</p><div><Link href="/about">Our Story</Link><Link href="/contact">Contact Us</Link><span>Thoughtfully conceived. Exceptionally lived.</span></div></div>
+        <div className="footer-bottom"><p>© {year} MEH Realty Limited. All rights reserved.</p><div><button type="button" className="footer-introduction" onClick={(event) => window.dispatchEvent(new CustomEvent("meh:open-introduction", { detail: { trigger: event.currentTarget } }))}>Meet MEH</button><Link href="/about">Our Story</Link><Link href="/contact">Contact Us</Link><span>Thoughtfully conceived. Exceptionally lived.</span></div></div>
       </div>
       <style jsx>{`
         .meh-reference-footer { position: relative; background: #f8f8f8; color: #252525; padding: 64px 0 32px; }
@@ -75,6 +75,9 @@ export default function Footer() {
         .footer-bottom { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding-top: 24px; font-size: 10px; line-height: 1.8; color: #757575; }
         .footer-bottom > div { display: flex; flex-wrap: wrap; align-items: center; gap: 22px; }
         .footer-bottom :global(a) { color: #555; }
+        .footer-introduction { min-height: 32px; color: #555; }
+        .footer-introduction:hover { color: #746040; }
+        .footer-introduction:focus-visible { outline: 2px solid #8b7554; outline-offset: 4px; }
         .footer-bottom > div > span { color: #888; }
         .footer-inner :global(a:hover) { color: #746040; }
         .meh-reference-footer :global(a:focus-visible), .footer-perspective button:focus-visible { outline: 2px solid #8b7554; outline-offset: 4px; }

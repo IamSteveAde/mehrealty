@@ -1,81 +1,20 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Pause, Play } from "lucide-react";
+import Image from "next/image";
 
 export default function HeroSection() {
-  const sectionRef = useRef<HTMLElement>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const [paused, setPaused] = useState(false);
-  const [playing, setPlaying] = useState(false);
-  const [visible, setVisible] = useState(true);
-  const [pageVisible, setPageVisible] = useState(true);
-  const [reducedMotion, setReducedMotion] = useState(false);
-  const [playRequested, setPlayRequested] = useState(false);
-  const [videoFailed, setVideoFailed] = useState(false);
-
-  useEffect(() => {
-    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const updateMotion = () => setReducedMotion(media.matches);
-    const updateVisibility = () => setPageVisible(!document.hidden);
-    updateMotion();
-    updateVisibility();
-    media.addEventListener("change", updateMotion);
-    document.addEventListener("visibilitychange", updateVisibility);
-
-    const observer = new IntersectionObserver(
-      ([entry]) => setVisible(entry.isIntersecting),
-      { threshold: 0.05 }
-    );
-    if (sectionRef.current) observer.observe(sectionRef.current);
-
-    return () => {
-      observer.disconnect();
-      media.removeEventListener("change", updateMotion);
-      document.removeEventListener("visibilitychange", updateVisibility);
-    };
-  }, []);
-
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-    if (visible && pageVisible && !paused && (!reducedMotion || playRequested)) {
-      video.play().then(() => setPlaying(!video.paused)).catch(() => setPlaying(false));
-    } else {
-      video.pause();
-    }
-  }, [visible, pageVisible, paused, reducedMotion, playRequested]);
-
-  function togglePlayback() {
-    if (videoRef.current && !videoRef.current.paused) {
-      setPaused(true);
-      videoRef.current?.pause();
-    } else {
-      setPaused(false);
-      setPlayRequested(true);
-      videoRef.current?.play().then(() => setPlaying(true)).catch(() => setPlaying(false));
-    }
-  }
-
   return (
-    <section ref={sectionRef} aria-labelledby="hero-heading" className="meh-reference-hero">
+    <section aria-labelledby="hero-heading" className="meh-reference-hero">
       <div className="hero-media" aria-hidden="true">
-        <video
-          ref={videoRef}
-          autoPlay
-          muted
-          loop
-          playsInline
-          preload="metadata"
-          poster="/uploads/hero-poster.jpg"
-          onPlay={() => setPlaying(true)}
-          onPause={() => setPlaying(false)}
-          onError={() => setVideoFailed(true)}
-          style={{ visibility: videoFailed ? "hidden" : "visible" }}
-        >
-          <source src="/uploads/hero.mp4" type="video/mp4" />
-        </video>
+        <Image
+          src="/uploads/report/report2.webp"
+          alt=""
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover object-center"
+        />
       </div>
       <div className="hero-shade" aria-hidden="true" />
 
@@ -84,17 +23,6 @@ export default function HeroSection() {
         <p>Where considered living begins</p>
         <Link href="/developments" className="hero-discover">Discover</Link>
       </div>
-
-      {!videoFailed && (
-        <button
-          type="button"
-          onClick={togglePlayback}
-          aria-label={playing ? "Pause background video" : "Play background video"}
-          className="hero-playback"
-        >
-          {playing ? <Pause size={14} strokeWidth={1.5} /> : <Play size={14} strokeWidth={1.5} />}
-        </button>
-      )}
 
       <style jsx>{`
         .meh-reference-hero {
@@ -112,17 +40,8 @@ export default function HeroSection() {
           inset: 0;
           pointer-events: none;
         }
-        .hero-media {
-          background: url('/uploads/hero-poster.jpg') center / cover no-repeat;
-        }
-        .hero-media video {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-          object-position: center;
-        }
         .hero-shade {
-          background: linear-gradient(180deg, rgba(0,0,0,.28) 0%, transparent 28%, transparent 45%, rgba(0,0,0,.22) 72%, rgba(0,0,0,.3) 100%);
+          background: linear-gradient(180deg, rgba(0,0,0,.48) 0%, rgba(0,0,0,.3) 35%, rgba(0,0,0,.5) 72%, rgba(0,0,0,.58) 100%);
         }
         .hero-caption {
           position: absolute;
@@ -171,26 +90,10 @@ export default function HeroSection() {
           background: #8e8182;
           border-color: rgba(255,255,255,.65);
         }
-        .hero-caption :global(.hero-discover:focus-visible), .hero-playback:focus-visible {
+        .hero-caption :global(.hero-discover:focus-visible) {
           outline: 2px solid white;
           outline-offset: 5px;
         }
-        .hero-playback {
-          position: absolute;
-          bottom: 22px;
-          left: 76px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 44px;
-          height: 44px;
-          border: 1px solid rgba(255,255,255,.4);
-          border-radius: 50%;
-          color: white;
-          background: rgba(0,0,0,.15);
-          transition: background .25s ease;
-        }
-        .hero-playback:hover { background: rgba(0,0,0,.4); }
         @keyframes hero-arrive {
           from { opacity: 0; transform: translateY(12px); }
           to { opacity: 1; transform: translateY(0); }
@@ -200,7 +103,6 @@ export default function HeroSection() {
           .hero-caption h1 { font-size: 48px; }
           .hero-caption p { font-size: 14px; margin-top: 12px; }
           .hero-caption :global(.hero-discover) { min-width: 170px; margin-top: 18px; }
-          .hero-playback { bottom: max(16px, env(safe-area-inset-bottom)); left: 68px; }
         }
         @media (max-height: 500px) and (min-width: 768px) {
           .meh-reference-hero { min-height: 360px; }
@@ -211,7 +113,7 @@ export default function HeroSection() {
         }
         @media (prefers-reduced-motion: reduce) {
           .hero-caption { animation: none; }
-          .hero-caption :global(.hero-discover), .hero-playback { transition: none; }
+          .hero-caption :global(.hero-discover) { transition: none; }
         }
       `}</style>
     </section>

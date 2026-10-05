@@ -29,6 +29,12 @@ A Next.js 15 / Tailwind CSS luxury real-estate website with a private Prisma-pow
 - No checkout, real-time unit inventory, live booking calendar, external CRM, or payment gateway is included.
 - `npm run setup` seeds demo projects and a demo article. Replace demo content before publishing.
 
+## Welcome audio introduction
+
+New visitors see a small, non-blocking audio invitation on public pages. **Accept** starts the recording and dismisses the invitation, so visitors can listen while browsing. **No thanks** dismisses it without audio. The choice is remembered in this browser. A compact player offers pause/resume, mute and stop controls, and stays mounted across public-page navigation. The footer's **Meet MEH** button reopens the invitation or player.
+
+Place the recording at `public/uploads/meh-introduction.mp3`, or set `NEXT_PUBLIC_MEH_INTRO_AUDIO_URL` to another audio URL and restart the development server. Audio never starts automatically on a later visit. The preference is stored under `meh:welcome-introduction:v2`; clearing that key lets you preview a new visit.
+
 ## Structure
 - `app/` public routes, API routes, admin pages and server actions.
 - `components/` UI and CMS forms.

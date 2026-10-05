@@ -3,7 +3,8 @@ import {usePathname} from "next/navigation";
 import SiteHeader from "./SiteHeader";
 import Footer from "./Footer";
 import Concierge from "./Concierge";
+import WelcomeIntroduction from "./WelcomeIntroduction";
 export default function SiteChrome({children}:{children:React.ReactNode}){
  const isAdmin=usePathname().startsWith("/admin");
- return <>{!isAdmin&&<SiteHeader/>}{children}{!isAdmin&&<><Footer/><Concierge/></>}</>;
+ return <>{!isAdmin&&<SiteHeader/>}{children}{!isAdmin&&<><Footer/><Concierge/><WelcomeIntroduction/></>}</>;
 }

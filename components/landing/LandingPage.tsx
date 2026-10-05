@@ -3,7 +3,6 @@ import HeroSection from "./HeroSection";
 import WelcomeSection from "./WelcomeSection";
 import FeaturedProjectsSection from "./FeaturedProjectsSection";
 import JourneySection from "./JourneySection";
-import PhilosophySection from "./PhilosophySection";
 import JournalSection from "./JournalSection";
 import CTASection from "./CTASection";
 
@@ -20,7 +19,6 @@ export default function LandingPage({ projects }: LandingPageProps) {
         <WelcomeSection />
       </div>
       <JourneySection />
-      <PhilosophySection />
       <FeaturedProjectsSection projects={projects} />
       <JournalSection />
       <CTASection />
