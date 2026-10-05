@@ -143,13 +143,15 @@ export default function SiteHeader() {
             : "bg-[#111310]/95 shadow-[0_12px_50px_rgba(0,0,0,.18)] backdrop-blur-2xl"
         }`}
       >
-        <div className="mx-auto flex h-[76px] w-full max-w-[1800px] items-center justify-between gap-5 px-6 sm:h-[88px] sm:px-10 lg:h-[96px] lg:px-[5%]">
+        <div className={isHome
+          ? "mx-auto grid h-[70px] w-full max-w-[1600px] grid-cols-[1fr_auto_1fr] items-center gap-4 px-5 sm:px-10 lg:px-[9%]"
+          : "mx-auto flex h-[76px] w-full max-w-[1800px] items-center justify-between gap-5 px-6 sm:h-[88px] sm:px-10 lg:h-[96px] lg:px-[5%]"}>
           {/* LOGO */}
           <Link
             href="/"
             onClick={() => setMenuOpen(false)}
             aria-label="MEH Realty — Home"
-            className="relative z-[125] flex shrink-0 items-center"
+            className={`relative z-[125] flex shrink-0 items-center ${isHome ? "order-2 justify-self-center" : ""}`}
           >
             <Image
               src="/uploads/logo.png"
@@ -157,16 +159,18 @@ export default function SiteHeader() {
               width={240}
               height={90}
               priority
-              className="h-auto w-[155px] object-contain transition-transform duration-700 hover:scale-[1.035] sm:w-[175px] lg:w-[195px]"
+              className={isHome
+                ? "h-auto w-[110px] object-contain lg:w-[140px]"
+                : "h-auto w-[155px] object-contain transition-transform duration-700 hover:scale-[1.035] sm:w-[175px] lg:w-[195px]"}
             />
           </Link>
 
           {/* DESKTOP NAVIGATION */}
           <nav
             aria-label="Main navigation"
-            className="hidden items-center gap-[clamp(18px,2.3vw,42px)] lg:flex"
+            className={`hidden items-center gap-[clamp(18px,2.3vw,42px)] lg:flex ${isHome ? "order-1" : ""}`}
           >
-            {navigation.map((item) => {
+            {(isHome ? navigation.slice(0, 3) : navigation).map((item) => {
               const active = isActive(item.href);
 
               return (
@@ -196,7 +200,22 @@ export default function SiteHeader() {
             })}
           </nav>
 
+          {isHome && (
+            <nav aria-label="Contact and news" className="order-3 flex items-center justify-end gap-[clamp(18px,2.3vw,42px)]">
+              {navigation.slice(3).map((item) => (
+                <Link key={item.href} href={item.href} className="hidden py-4 text-[10px] font-medium uppercase tracking-[.17em] text-white/90 transition-colors hover:text-white lg:block">
+                  {item.label}
+                </Link>
+              ))}
+              <Link href="/contact" aria-label="Contact us" className="flex min-h-11 min-w-11 items-center justify-center text-[10px] font-medium uppercase tracking-[.17em] text-white/90 hover:text-white">
+                <span className="hidden lg:inline">Contact us</span>
+                <ArrowUpRight size={20} strokeWidth={1.5} className="lg:hidden" />
+              </Link>
+            </nav>
+          )}
+
           {/* DESKTOP CTA */}
+          {!isHome && (
           <Link
             href="/contact"
             className="group hidden items-center gap-3 border border-[#d4b784]/55 px-5 py-3.5 text-[10px] font-medium uppercase tracking-[.16em] transition-all duration-500 hover:border-[#c5a36c] hover:bg-[#c5a36c] hover:text-[#15130e] lg:inline-flex"
@@ -209,6 +228,7 @@ export default function SiteHeader() {
               className="transition-transform duration-500 group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
             />
           </Link>
+          )}
 
           {/* ANIMATED HAMBURGER */}
           <button
@@ -224,7 +244,7 @@ export default function SiteHeader() {
             onClick={() =>
               setMenuOpen((current) => !current)
             }
-            className="relative z-[130] flex h-12 w-12 shrink-0 items-center justify-center border border-white/25 transition-colors duration-500 hover:border-[#d3b47d] lg:hidden"
+            className={`relative z-[130] flex h-12 w-12 shrink-0 items-center justify-center transition-colors duration-500 lg:hidden ${isHome ? "order-1 -ml-3" : "border border-white/25 hover:border-[#d3b47d]"}`}
           >
             <span className="relative block h-5 w-6">
               <motion.span
@@ -283,7 +303,7 @@ export default function SiteHeader() {
         </div>
 
         {/* 90% WIDTH LUMINOUS SILVER RAIL */}
-        <div
+        {!isHome && <div
           aria-hidden="true"
           className="pointer-events-none absolute bottom-0 left-1/2 h-[2px] w-[90%] -translate-x-1/2 overflow-hidden"
           style={{
@@ -318,7 +338,7 @@ export default function SiteHeader() {
               }}
             />
           )}
-        </div>
+        </div>}
       </header>
 
       {/* CINEMATIC MOBILE MENU */}

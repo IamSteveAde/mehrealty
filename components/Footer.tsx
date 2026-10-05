@@ -1,435 +1,103 @@
-
 "use client";
 
 import Image from "next/image";
 import Link from "next/link";
-import { motion, useReducedMotion } from "framer-motion";
-import {
-  ArrowUpRight,
-  ArrowRight,
-  MapPin,
-  Mail,
-  MoveUpRight,
-} from "lucide-react";
-
-const EASE = [0.22, 1, 0.36, 1] as const;
+import { ArrowUp, ArrowUpRight, Mail, MapPin, Phone } from "lucide-react";
 
 const navigation = [
   { label: "Home", href: "/" },
+  { label: "Our Story", href: "/about" },
   { label: "Developments", href: "/developments" },
-  { label: "Our Expertise", href: "/services" },
   { label: "The Journal", href: "/journal" },
   { label: "Media Gallery", href: "/media" },
-  { label: "Our Story", href: "/about" },
+  { label: "Contact Us", href: "/contact" },
 ];
-
 const expertise = [
   { label: "Property Development", href: "/services" },
   { label: "Investment Advisory", href: "/services#investment" },
   { label: "Property Management", href: "/services#management" },
   { label: "Hospitality & Partnerships", href: "/services#hospitality" },
 ];
-
-function FooterLink({
-  href,
-  children,
-}: {
-  href: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <Link
-      href={href}
-      className="group/link inline-flex w-fit items-center gap-3 text-[13px] text-white/50 transition-colors duration-300 hover:text-[#e3c58f] focus-visible:rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#b8975a] sm:text-[14px]"
-    >
-      <span className="relative">
-        {children}
-
-        <span className="absolute -bottom-1 left-0 h-px w-0 bg-[#b8975a] transition-all duration-500 group-hover/link:w-full" />
-      </span>
-
-      <ArrowUpRight
-        size={13}
-        strokeWidth={1.4}
-        className="-translate-x-1 translate-y-1 text-[#b8975a] opacity-0 transition-all duration-300 group-hover/link:translate-x-0 group-hover/link:translate-y-0 group-hover/link:opacity-100"
-      />
-    </Link>
-  );
-}
-
-function FooterHeading({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="mb-8 flex items-center gap-3">
-      <span className="h-px w-5 bg-[#b8975a]" />
-
-      <h3 className="text-[10px] font-medium uppercase tracking-[0.23em] text-[#c5a36c]">
-        {children}
-      </h3>
-    </div>
-  );
-}
+const developments = [
+  { label: "MEH Empire Estate", href: "/developments/meh-empire-estate" },
+  { label: "Reportage Tower", href: "/developments/reportage-tower" },
+  { label: "Explore All Developments", href: "/developments" },
+];
 
 export default function Footer() {
-  const reducedMotion = Boolean(useReducedMotion());
-
-  const year = new Date().getFullYear();
-
+  const year = new Intl.DateTimeFormat("en", { year: "numeric", timeZone: "Africa/Lagos" }).format(new Date());
   return (
-    <footer className="relative isolate overflow-hidden bg-[#141512] text-white">
-      {/* BACKGROUND ATMOSPHERE */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 overflow-hidden"
-      >
-        <div className="absolute -right-[20%] -top-[20%] h-[850px] w-[850px] rounded-full bg-[#b8975a]/[0.045] blur-[130px]" />
-
-        <div className="absolute -left-[25%] bottom-[-35%] h-[750px] w-[750px] rounded-full bg-[#b8975a]/[0.035] blur-[130px]" />
-
-        <div className="absolute right-[8%] top-[15%] h-[550px] w-[550px] rounded-full border border-white/[0.035]" />
-
-        <div className="absolute right-[11%] top-[19%] h-[450px] w-[450px] rounded-full border border-white/[0.025]" />
+    <footer className="meh-reference-footer">
+      <div className="footer-brand">
+        <span aria-hidden="true" />
+        <Link href="/" aria-label="MEH Realty home" className="footer-logo"><Image src="/uploads/logo.png" alt="MEH Realty" width={240} height={90} className="h-auto w-full" /></Link>
+        <span aria-hidden="true" />
       </div>
-
-      {/* TOP BRAND STRIP */}
-      <div className="relative border-b border-white/[0.09]">
-        <div className="mx-auto flex w-[90%] max-w-[1800px] flex-wrap items-center justify-between gap-5 py-7">
-          <div className="flex items-center gap-4">
-            <span className="h-px w-8 bg-[#b8975a]" />
-
-            <span className="text-[10px] font-medium uppercase tracking-[0.24em] text-[#c5a36c]">
-              MEH Realty
-            </span>
+      <div className="footer-inner">
+        <div className="footer-columns">
+          <nav aria-label="Footer developments"><h2>Developments</h2>{developments.map(item => <Link key={item.href} href={item.href}>{item.label}</Link>)}</nav>
+          <nav aria-label="Footer navigation"><h2>Explore MEH</h2>{navigation.map(item => <Link key={item.href} href={item.href}>{item.label}</Link>)}</nav>
+          <nav aria-label="Footer services"><h2>Our Expertise</h2>{expertise.map(item => <Link key={item.href} href={item.href}>{item.label}</Link>)}</nav>
+          <div className="footer-contact">
+            <h2>Connect With Us</h2>
+            <p><MapPin size={16} strokeWidth={1.2} /><span>Parkview Estate, Ikoyi<br />Lagos, Nigeria</span></p>
+            <a href="tel:+2349159463447"><Phone size={16} strokeWidth={1.2} />+234 915 9463 447</a>
+            <a href="mailto:contactus@meh.ae"><Mail size={16} strokeWidth={1.2} />contactus@meh.ae</a>
+            <Link href="/contact" className="footer-enquiry">Make an enquiry <ArrowUpRight size={15} strokeWidth={1.2} /></Link>
           </div>
-
-          <span className="text-[10px] uppercase tracking-[0.16em] text-white/30">
-            Thoughtfully conceived. Exceptionally lived.
-          </span>
         </div>
+        <div className="footer-perspective">
+          <div><span>Considered living. Lasting value.</span><p>More than a place. <em>A way of living.</em></p></div>
+          <button type="button" aria-label="Back to top" onClick={() => window.scrollTo({ top: 0, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" })}><ArrowUp size={19} strokeWidth={1.2} /><span>Back to top</span></button>
+        </div>
+        <div className="footer-bottom"><p>© {year} MEH Realty Limited. All rights reserved.</p><div><Link href="/about">Our Story</Link><Link href="/contact">Contact Us</Link><span>Thoughtfully conceived. Exceptionally lived.</span></div></div>
       </div>
-
-      {/* MAIN FOOTER */}
-      <div className="relative mx-auto w-[90%] max-w-[1800px] pb-20 pt-20 sm:pb-24 sm:pt-24 lg:pb-32 lg:pt-28">
-        {/* LOGO AND BRAND INTRODUCTION */}
-        <div className="grid gap-12 border-b border-white/[0.1] pb-20 lg:grid-cols-[1.1fr_0.9fr] lg:items-end lg:gap-24 lg:pb-24">
-          <motion.div
-            initial={
-              reducedMotion
-                ? false
-                : { opacity: 0, y: 25 }
-            }
-            whileInView={{
-              opacity: 1,
-              y: 0,
-            }}
-            viewport={{ once: true }}
-            transition={{
-              duration: 0.9,
-              ease: EASE,
-            }}
-          >
-            {/* ACTUAL BRAND LOGO */}
-            <Link
-              href="/"
-              aria-label="MEH Realty — Home"
-              className="group/logo inline-block focus-visible:rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-5 focus-visible:outline-[#b8975a]"
-            >
-              <div className="relative h-[85px] w-[220px] sm:h-[110px] sm:w-[290px] lg:h-[130px] lg:w-[340px]">
-                <Image
-                  src="/uploads/logo.png"
-                  alt="MEH Realty logo"
-                  fill
-                  sizes="(max-width: 640px) 220px, (max-width: 1024px) 290px, 340px"
-                  className="object-contain object-left transition-opacity duration-500 group-hover/logo:opacity-80"
-                />
-              </div>
-            </Link>
-
-            <p className="mt-9 max-w-[480px] font-[family-name:var(--font-fraunces)] text-[clamp(1.6rem,2.5vw,2.8rem)] font-light leading-[1.4] tracking-[-0.025em] text-[#f1eee8]">
-              Creating places that mean more.
-              <span className="italic text-[#c5a36c]">
-                {" "}For the lives lived within them.
-              </span>
-            </p>
-          </motion.div>
-
-          <motion.div
-            initial={
-              reducedMotion
-                ? false
-                : { opacity: 0, y: 18 }
-            }
-            whileInView={{
-              opacity: 1,
-              y: 0,
-            }}
-            viewport={{ once: true }}
-            transition={{
-              duration: 0.85,
-              delay: 0.1,
-              ease: EASE,
-            }}
-            className="max-w-[480px] lg:ml-auto"
-          >
-            <div className="mb-7 flex items-center gap-3">
-              <span className="h-px w-9 bg-[#b8975a]" />
-
-              <span className="text-[10px] uppercase tracking-[0.22em] text-[#c5a36c]">
-                A considered approach
-              </span>
-            </div>
-
-            <p className="text-[14px] leading-[2] text-white/50 sm:text-[15px]">
-              At MEH Realty, we believe exceptional property
-              is about more than architecture. It is about
-              understanding people, creating meaningful
-              spaces, and building enduring value.
-            </p>
-
-            <Link
-              href="/about"
-              className="group mt-8 inline-flex items-center gap-4 border-b border-[#b8975a]/60 pb-3 text-[10px] font-medium uppercase tracking-[0.18em] text-white/80 transition-colors duration-300 hover:text-[#e3c58f]"
-            >
-              Discover our story
-
-              <ArrowUpRight
-                size={17}
-                strokeWidth={1.3}
-                className="text-[#b8975a] transition-transform duration-300 group-hover:-translate-y-1 group-hover:translate-x-1"
-              />
-            </Link>
-          </motion.div>
-        </div>
-
-        {/* FOOTER NAVIGATION */}
-        <div className="grid gap-14 border-b border-white/[0.1] py-20 sm:grid-cols-2 sm:gap-x-12 lg:grid-cols-[1fr_1.2fr_1.1fr] lg:gap-20 lg:py-24">
-          {/* EXPLORE */}
-          <div>
-            <FooterHeading>Explore</FooterHeading>
-
-            <nav
-              aria-label="Footer navigation"
-              className="flex flex-col items-start gap-5"
-            >
-              {navigation.map((item) => (
-                <FooterLink
-                  key={item.href}
-                  href={item.href}
-                >
-                  {item.label}
-                </FooterLink>
-              ))}
-            </nav>
-          </div>
-
-          {/* OUR EXPERTISE */}
-          <div>
-            <FooterHeading>Our Expertise</FooterHeading>
-
-            <nav
-              aria-label="Our expertise"
-              className="flex flex-col items-start gap-5"
-            >
-              {expertise.map((item) => (
-                <FooterLink
-                  key={item.label}
-                  href={item.href}
-                >
-                  {item.label}
-                </FooterLink>
-              ))}
-            </nav>
-          </div>
-
-          {/* CONTACT */}
-          <div className="sm:col-span-2 lg:col-span-1">
-            <FooterHeading>Begin a Conversation</FooterHeading>
-
-            <p className="max-w-[340px] font-[family-name:var(--font-fraunces)] text-[clamp(1.5rem,2.2vw,2.35rem)] font-light leading-[1.3] tracking-[-0.025em]">
-              Have something
-              <span className="italic text-[#c5a36c]">
-                {" "}in mind?
-              </span>
-            </p>
-
-            <p className="mt-5 max-w-[310px] text-[13px] leading-[1.9] text-white/45">
-              We would be delighted to hear what
-              you are looking for and explore how
-              we can help.
-            </p>
-
-            <Link
-              href="/contact"
-              className="group mt-8 inline-flex min-h-[56px] items-center justify-between gap-10 rounded-full border border-[#b8975a]/60 px-6 text-[10px] font-medium uppercase tracking-[0.15em] text-[#e3c58f] transition-all duration-500 hover:border-[#b8975a] hover:bg-[#b8975a] hover:text-[#141512] hover:shadow-[0_0_35px_rgba(184,151,90,0.15)]"
-            >
-              Make an enquiry
-
-              <span className="flex h-8 w-8 items-center justify-center rounded-full border border-current/40 transition-transform duration-300 group-hover:rotate-45">
-                <ArrowUpRight
-                  size={17}
-                  strokeWidth={1.3}
-                />
-              </span>
-            </Link>
-          </div>
-        </div>
-
-        {/* CONTACT DETAILS */}
-        <div className="grid gap-10 border-b border-white/[0.1] py-12 sm:grid-cols-2 lg:grid-cols-3 lg:gap-16 lg:py-16">
-          {/* LOCATION */}
-          <div className="flex items-start gap-4">
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[#b8975a]/25 text-[#b8975a]">
-              <MapPin
-                size={18}
-                strokeWidth={1.2}
-              />
-            </span>
-
-            <div>
-              <p className="mb-3 text-[10px] uppercase tracking-[0.19em] text-[#c5a36c]">
-                Our Location
-              </p>
-
-              <p className="text-[13px] leading-[1.8] text-white/55">
-                Ikoyi, Lagos
-                <br />
-                Nigeria
-              </p>
-            </div>
-          </div>
-
-          {/* EMAIL */}
-          <div className="flex items-start gap-4">
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[#b8975a]/25 text-[#b8975a]">
-              <Mail
-                size={18}
-                strokeWidth={1.2}
-              />
-            </span>
-
-            <div>
-              <p className="mb-3 text-[10px] uppercase tracking-[0.19em] text-[#c5a36c]">
-                Email Us
-              </p>
-
-              <a
-                href="mailto:contactus@meh.ae"
-                className="text-[13px] leading-[1.8] text-white/55 transition-colors duration-300 hover:text-[#e3c58f]"
-              >
-                contactus@meh.ae
-              </a>
-            </div>
-          </div>
-
-          {/* PHILOSOPHY */}
-          <div className="flex items-start gap-4">
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[#b8975a]/25 text-[#b8975a]">
-              <MoveUpRight
-                size={18}
-                strokeWidth={1.2}
-              />
-            </span>
-
-            <div>
-              <p className="mb-3 text-[10px] uppercase tracking-[0.19em] text-[#c5a36c]">
-                Our Philosophy
-              </p>
-
-              <p className="max-w-[230px] text-[13px] leading-[1.8] text-white/55">
-                Beyond property.
-                <br />
-                Towards possibility.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* LARGE EDITORIAL BRAND STATEMENT */}
-        <div className="relative overflow-hidden border-b border-white/[0.1] py-16 sm:py-20 lg:py-24">
-          <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
-            <div>
-              <span className="mb-7 block text-[10px] uppercase tracking-[0.23em] text-[#b8975a]">
-                The MEH Perspective
-              </span>
-
-              <motion.p
-                initial={
-                  reducedMotion
-                    ? false
-                    : { opacity: 0, y: 22 }
-                }
-                whileInView={{
-                  opacity: 1,
-                  y: 0,
-                }}
-                viewport={{ once: true }}
-                transition={{
-                  duration: 0.95,
-                  ease: EASE,
-                }}
-                className="max-w-[1150px] font-[family-name:var(--font-fraunces)] text-[clamp(2.6rem,5.5vw,7rem)] font-light leading-[1.08] tracking-[-0.055em] text-white"
-              >
-                More than a place.
-                <span className="block italic text-[#b8975a]">
-                  A way of living.
-                </span>
-              </motion.p>
-            </div>
-
-            <Link
-              href="/"
-              aria-label="Return to homepage"
-              className="group flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-white/25 text-white transition-all duration-500 hover:-translate-y-1 hover:border-[#b8975a] hover:bg-[#b8975a] hover:text-[#141512] sm:h-16 sm:w-16"
-            >
-              <ArrowUpRight
-                size={23}
-                strokeWidth={1.2}
-                className="transition-transform duration-300 group-hover:rotate-[-45deg]"
-              />
-            </Link>
-          </div>
-        </div>
-
-        {/* BOTTOM LEGAL BAR */}
-        <div className="flex flex-col gap-7 pt-9 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
-            <span className="text-[10px] uppercase tracking-[0.15em] text-white/35">
-              © {year} MEH Realty Limited
-            </span>
-
-            <span className="hidden h-3 w-px bg-white/15 sm:block" />
-
-            <span className="text-[10px] uppercase tracking-[0.15em] text-white/25">
-              All rights reserved
-            </span>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-x-7 gap-y-3">
-            <Link
-              href="/privacy"
-              className="text-[10px] uppercase tracking-[0.15em] text-white/35 transition-colors hover:text-[#c5a36c]"
-            >
-              Privacy Policy
-            </Link>
-
-            <Link
-              href="/terms"
-              className="text-[10px] uppercase tracking-[0.15em] text-white/35 transition-colors hover:text-[#c5a36c]"
-            >
-              Terms of Use
-            </Link>
-
-            <span className="hidden h-3 w-px bg-white/15 sm:block" />
-
-            <span className="text-[10px] uppercase tracking-[0.15em] text-[#b8975a]/65">
-              Built around distinction
-            </span>
-          </div>
-        </div>
-      </div>
+      <style jsx>{`
+        .meh-reference-footer { position: relative; background: #f8f8f8; color: #252525; padding: 64px 0 32px; }
+        .footer-brand { display: flex; align-items: center; justify-content: center; gap: 60px; width: 100%; }
+        .footer-brand > span { height: 1px; flex: 1; background: #c9b393; }
+        .footer-brand :global(.footer-logo) { display: block; width: 190px; flex-shrink: 0; padding: 8px 0; }
+        .footer-inner { width: 83%; max-width: 1320px; margin: 0 auto; }
+        .footer-columns { display: grid; grid-template-columns: 1.1fr .9fr 1.2fr 1.1fr; gap: 40px; padding: 54px 0 48px; }
+        .footer-columns h2 { margin: 0 0 24px; font-family: 'DM Sans', Arial, sans-serif; font-size: 13px; font-weight: 400; line-height: 1.5; letter-spacing: .12em; text-transform: uppercase; }
+        .footer-columns nav { display: flex; flex-direction: column; align-items: flex-start; gap: 13px; }
+        .footer-columns nav h2 { margin-bottom: 11px; }
+        .footer-columns nav :global(a) { display: inline-flex; align-items: center; min-height: 28px; font-size: 12px; line-height: 1.7; color: #626262; }
+        .footer-contact { min-width: 0; }
+        .footer-contact > p, .footer-contact > a { display: flex; align-items: flex-start; gap: 11px; margin-bottom: 16px; font-size: 12px; line-height: 1.8; color: #626262; overflow-wrap: anywhere; }
+        .footer-contact :global(svg) { flex-shrink: 0; margin-top: 3px; }
+        .footer-contact :global(.footer-enquiry) { display: inline-flex; align-items: center; gap: 18px; min-height: 44px; border-bottom: 1px solid #b99a77; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; }
+        .footer-perspective { display: flex; align-items: center; justify-content: space-between; gap: 32px; padding: 32px 0; border-top: 1px solid #e3e0da; border-bottom: 1px solid #e3e0da; }
+        .footer-perspective > div > span { font-size: 9px; letter-spacing: .14em; text-transform: uppercase; color: #8b7554; }
+        .footer-perspective p { margin-top: 12px; font-family: var(--font-fraunces), Georgia, serif; font-size: clamp(23px, 2.2vw, 34px); font-weight: 300; line-height: 1.3; letter-spacing: -.025em; }
+        .footer-perspective em { color: #8b7554; }
+        .footer-perspective button { display: flex; align-items: center; gap: 10px; min-height: 44px; font-size: 10px; letter-spacing: .1em; text-transform: uppercase; flex-shrink: 0; }
+        .footer-bottom { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding-top: 24px; font-size: 10px; line-height: 1.8; color: #757575; }
+        .footer-bottom > div { display: flex; flex-wrap: wrap; align-items: center; gap: 22px; }
+        .footer-bottom :global(a) { color: #555; }
+        .footer-bottom > div > span { color: #888; }
+        .footer-inner :global(a:hover) { color: #746040; }
+        .meh-reference-footer :global(a:focus-visible), .footer-perspective button:focus-visible { outline: 2px solid #8b7554; outline-offset: 4px; }
+        @media (max-width: 1023px) {
+          .footer-inner { width: 88%; }
+          .footer-columns { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 40px; }
+          .footer-bottom { align-items: flex-start; flex-direction: column; gap: 14px; }
+        }
+        @media (max-width: 639px) {
+          .meh-reference-footer { padding-top: 40px; padding-bottom: 94px; }
+          .footer-brand { gap: 24px; }
+          .footer-brand :global(.footer-logo) { width: 150px; }
+          .footer-columns { gap: 34px 20px; padding: 36px 0; }
+          .footer-columns h2 { font-size: 11px; letter-spacing: .08em; }
+          .footer-columns nav :global(a), .footer-contact > p, .footer-contact > a { font-size: 11px; }
+          .footer-contact > p, .footer-contact > a { gap: 8px; }
+          .footer-perspective { align-items: flex-start; flex-direction: column; gap: 18px; padding: 26px 0; }
+          .footer-perspective p { font-size: 25px; }
+          .footer-perspective em { display: block; margin-top: 4px; }
+          .footer-bottom > div { gap: 12px 22px; }
+          .footer-bottom > div > span { flex-basis: 100%; }
+        }
+      `}</style>
     </footer>
   );
 }

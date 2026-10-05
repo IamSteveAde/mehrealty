@@ -11,3 +11,12 @@ h6 {
   font-family: var(--font-fraunces), Georgia, serif;
   font-weight: 300;
 }
+
+/* Sized copy of the supplied icon for browsers' native cursor limits. */
+@media (hover: hover) and (pointer: fine) {
+  html,
+  body,
+  body * {
+    cursor: url('/uploads/cursor.svg') 16 16, auto !important;
+  }
+}

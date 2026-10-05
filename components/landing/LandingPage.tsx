@@ -12,15 +12,17 @@ type LandingPageProps = {
   posts: Post[];
 };
 
-export default function LandingPage({ projects, posts }: LandingPageProps) {
+export default function LandingPage({ projects }: LandingPageProps) {
   return (
     <main>
-      <HeroSection />
+      <div className="relative isolate">
+        <HeroSection />
+        <WelcomeSection />
+      </div>
       <JourneySection />
-      <WelcomeSection />
       <PhilosophySection />
       <FeaturedProjectsSection projects={projects} />
-      <JournalSection posts={posts} />
+      <JournalSection />
       <CTASection />
     </main>
   );

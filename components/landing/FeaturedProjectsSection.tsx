@@ -1,36 +1,14 @@
-
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import {
-  AnimatePresence,
-  motion,
-  useInView,
-  useReducedMotion,
-} from "framer-motion";
-import {
-  ArrowLeft,
-  ArrowRight,
-  ArrowUpRight,
-  MapPin,
-  MoveUpRight,
-} from "lucide-react";
+import { motion, useScroll, useSpring, useTransform } from "framer-motion";
+import { ChevronLeft, ChevronRight, Clapperboard, Dumbbell, MapPin, Pause, Play, Waves, Wifi } from "lucide-react";
 import type { Project } from "@prisma/client";
+import { useCarouselAutoplay } from "@/hooks/useCarouselAutoplay";
 
-type FeaturedProjectsSectionProps = {
-  projects: Project[];
-};
-
-const EASE = [0.22, 1, 0.36, 1] as const;
-const SLIDE_DURATION = 6500;
-const IMAGE_TRANSITION = 1.1;
+type FeaturedProjectsSectionProps = { projects: Project[] };
 
 const PROJECT_GALLERIES = [
   {
@@ -165,538 +143,156 @@ function getProjectImages(project: Project, index: number) {
   ].images;
 }
 
-/* -------------------------------------------------------
-   CINEMATIC IMAGE SLIDESHOW
-------------------------------------------------------- */
 
-function Slideshow({
-  images,
-  title,
-  index,
-  priority = false,
-}: {
-  images: string[];
-  title: string;
-  index: number;
-  priority?: boolean;
-}) {
-  const galleryRef = useRef<HTMLDivElement>(null);
+const HOME_FEATURES = [
+  { text: "Smart Home", Icon: Wifi },
+  { text: "Home Cinema", Icon: Clapperboard },
+  { text: "Swimming Pool", Icon: Waves },
+  { text: "Fitness Centre", Icon: Dumbbell },
+];
 
-  const isInView = useInView(galleryRef, {
-    amount: 0.25,
-  });
-
-  const reducedMotion = Boolean(useReducedMotion());
-
-  const [activeIndex, setActiveIndex] = useState(0);
-  const [slideKey, setSlideKey] = useState(0);
-  const [paused, setPaused] = useState(false);
-  const [isPageVisible, setIsPageVisible] = useState(true);
-
-  const total = images.length;
+function ProjectShowcase({ projects }: FeaturedProjectsSectionProps) {
+  const stageRef = useRef<HTMLDivElement>(null);
+  const touchStart = useRef<{ x: number; y: number } | null>(null);
+  const [active, setActive] = useState(0);
+  const [reduceMotion, setReduceMotion] = useState(false);
+  const [desktop, setDesktop] = useState(false);
+  const { scrollYProgress } = useScroll({ target: stageRef, offset: ["start 75%", "start 20%"] });
+  const progress = useSpring(scrollYProgress, { stiffness: 100, damping: 30 });
+  const scale = useTransform(progress, [0, 1], [0.85, 1]);
+  const project = projects[Math.min(active, projects.length - 1)];
+  const title = getProjectTitle(project);
+  const href = getProjectHref(project);
 
   useEffect(() => {
-    const updateVisibility = () => {
-      setIsPageVisible(
-        document.visibilityState === "visible"
-      );
-    };
-
-    updateVisibility();
-
-    document.addEventListener(
-      "visibilitychange",
-      updateVisibility
-    );
-
-    return () => {
-      document.removeEventListener(
-        "visibilitychange",
-        updateVisibility
-      );
-    };
+    const motionPreference = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const layout = window.matchMedia("(min-width: 1024px)");
+    const update = () => { setReduceMotion(motionPreference.matches); setDesktop(layout.matches); };
+    update();
+    motionPreference.addEventListener("change", update);
+    layout.addEventListener("change", update);
+    return () => { motionPreference.removeEventListener("change", update); layout.removeEventListener("change", update); };
   }, []);
 
-  const canAnimate =
-    isInView &&
-    isPageVisible &&
-    !paused &&
-    !reducedMotion;
+  function changeProject(direction: number) {
+    setActive(current => (current + direction + projects.length) % projects.length);
+  }
 
-  const next = useCallback(() => {
-    if (total <= 1) return;
-
-    setActiveIndex((current) => (current + 1) % total);
-    setSlideKey((current) => current + 1);
-  }, [total]);
-
-  const previous = useCallback(() => {
-    if (total <= 1) return;
-
-    setActiveIndex(
-      (current) => (current - 1 + total) % total
-    );
-    setSlideKey((current) => current + 1);
-  }, [total]);
-
-  const goTo = useCallback(
-    (nextIndex: number) => {
-      if (total <= 1 || nextIndex === activeIndex) return;
-
-      setActiveIndex((nextIndex + total) % total);
-      setSlideKey((current) => current + 1);
-    },
-    [activeIndex, total]
-  );
-
-  useEffect(() => {
-    if (!canAnimate || total <= 1) return;
-
-    const timer = window.setTimeout(next, SLIDE_DURATION);
-
-    return () => window.clearTimeout(timer);
-  }, [canAnimate, activeIndex, next, total]);
-
-  // Alternate the zoom direction for a more cinematic result.
-  const zoomIn = slideKey % 2 === 0;
+  const autoplay = useCarouselAutoplay({ ref: stageRef, enabled: projects.length > 1, slide: active, advance: () => changeProject(1) });
 
   return (
-    <div
-      ref={galleryRef}
-      aria-label={`${title} image gallery`}
-      className="group/gallery relative h-full w-full overflow-hidden bg-[#292a28]"
-      onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
-      onFocusCapture={() => setPaused(true)}
-      onBlurCapture={(event) => {
-        if (
-          !event.currentTarget.contains(
-            event.relatedTarget as Node | null
-          )
-        ) {
-          setPaused(false);
-        }
-      }}
-    >
-      {/* IMAGE TRANSITIONS */}
-      <AnimatePresence initial={false} mode="sync">
-        <motion.div
-          key={activeIndex}
-          initial={{
-            opacity: 0,
+    <div ref={stageRef} className="property-stage-anchor" {...autoplay.interaction}>
+      <motion.div className="property-stage" style={{ scale: desktop && !reduceMotion ? scale : 1 }}>
+        <div
+          className="property-banner"
+          role="region"
+          aria-label="Featured developments"
+          aria-roledescription="carousel"
+          onTouchStart={(event) => { touchStart.current = { x: event.touches[0].clientX, y: event.touches[0].clientY }; }}
+          onTouchEnd={(event) => {
+            const start = touchStart.current;
+            touchStart.current = null;
+            if (!start || projects.length < 2) return;
+            const dx = event.changedTouches[0].clientX - start.x;
+            const dy = event.changedTouches[0].clientY - start.y;
+            if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy)) changeProject(dx < 0 ? 1 : -1);
           }}
-          animate={{
-            opacity: 1,
-          }}
-          exit={{
-            opacity: 0,
-          }}
-          transition={{
-            opacity: {
-              duration: reducedMotion ? 0 : IMAGE_TRANSITION,
-              ease: "easeInOut",
-            },
-          }}
-          className="absolute inset-0"
         >
-          {/* KEN BURNS ZOOM */}
-          <motion.div
-            className="absolute inset-0"
-            initial={{
-              scale: zoomIn ? 1 : 1.12,
-            }}
-            animate={{
-              scale: canAnimate
-                ? zoomIn
-                  ? 1.12
-                  : 1
-                : zoomIn
-                  ? 1
-                  : 1.12,
-            }}
-            transition={{
-              scale: {
-                duration: SLIDE_DURATION / 1000,
-                ease: "linear",
-              },
-            }}
-          >
-            <Image
-              src={images[activeIndex]}
-              alt={`${title} — architectural view ${
-                activeIndex + 1
-              }`}
-              fill
-              priority={priority && activeIndex === 0}
-              sizes="(max-width: 767px) 100vw, (max-width: 1279px) 55vw, 50vw"
-              className="object-cover"
-            />
-          </motion.div>
-        </motion.div>
-      </AnimatePresence>
-
-      {/* IMAGE GRADIENT */}
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/45" />
-
-      {/* TOP LABEL */}
-      <div className="absolute left-4 top-4 z-10 flex items-center gap-2.5 sm:left-6 sm:top-6">
-        <span className="text-[10px] font-medium tracking-[0.18em] text-white/90">
-          {String(index + 1).padStart(2, "0")}
-        </span>
-
-        <span className="h-px w-6 bg-white/60" />
-
-        <span className="text-[9px] uppercase tracking-[0.16em] text-white/80">
-          MEH Collection
-        </span>
-      </div>
-
-      {/* IMAGE COUNTER */}
-      <div className="absolute right-4 top-4 z-10 flex items-center gap-1.5 text-white sm:right-6 sm:top-6">
-        <span className="font-[family-name:var(--font-fraunces)] text-[19px] font-light">
-          {String(activeIndex + 1).padStart(2, "0")}
-        </span>
-
-        <span className="text-[10px] text-white/50">/</span>
-
-        <span className="text-[10px] text-white/65">
-          {String(total).padStart(2, "0")}
-        </span>
-      </div>
-
-      {/* NAVIGATION ARROWS */}
-      {total > 1 && (
-        <>
-          <button
-            type="button"
-            onClick={previous}
-            aria-label={`Previous ${title} image`}
-            className="absolute left-3 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/45 bg-black/20 text-white backdrop-blur-md transition-all hover:border-[#d6b67c] hover:bg-[#b8975a] hover:text-[#10110e] sm:left-5 sm:h-11 sm:w-11"
-          >
-            <ArrowLeft size={18} strokeWidth={1.4} />
-          </button>
-
-          <button
-            type="button"
-            onClick={next}
-            aria-label={`Next ${title} image`}
-            className="absolute right-3 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/45 bg-black/20 text-white backdrop-blur-md transition-all hover:border-[#d6b67c] hover:bg-[#b8975a] hover:text-[#10110e] sm:right-5 sm:h-11 sm:w-11"
-          >
-            <ArrowRight size={18} strokeWidth={1.4} />
-          </button>
-        </>
-      )}
-
-      {/* SLIDE INDICATORS */}
-      {total > 1 && (
-        <div className="absolute bottom-4 left-4 right-4 z-10 flex items-center gap-1.5 sm:bottom-6 sm:left-6 sm:right-6">
-          {images.map((_, imageIndex) => (
-            <button
-              key={imageIndex}
-              type="button"
-              onClick={() => goTo(imageIndex)}
-              aria-label={`Show ${title} image ${
-                imageIndex + 1
-              }`}
-              aria-current={
-                imageIndex === activeIndex
-                  ? "true"
-                  : undefined
-              }
-              className="group/dot flex h-5 flex-1 items-center"
-            >
-              <span
-                className={`block h-[2px] w-full transition-all duration-500 ${
-                  imageIndex === activeIndex
-                    ? "bg-[#d6b67c]"
-                    : "bg-white/40 group-hover/dot:bg-white/80"
-                }`}
-              />
-            </button>
-          ))}
+          <Link href={href} className="property-image-link" aria-label={`Explore ${title}`}>
+            <motion.div key={project.id} className="absolute inset-0" initial={reduceMotion ? false : { opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: reduceMotion ? 0 : 0.65 }}>
+              <Image src={getProjectImages(project, active)[0]} alt={`${title} — architectural view`} fill sizes="100vw" className="object-cover" />
+            </motion.div>
+          </Link>
+          {projects.length > 1 && <>
+            <button type="button" className="property-arrow previous" aria-label="Previous development" onClick={() => changeProject(-1)}><ChevronLeft size={42} strokeWidth={1} /></button>
+            <button type="button" className="property-arrow next" aria-label="Next development" onClick={() => changeProject(1)}><ChevronRight size={42} strokeWidth={1} /></button>
+            <button type="button" className="property-autoplay" aria-label={autoplay.paused ? "Resume development slideshow" : "Pause development slideshow"} onClick={autoplay.togglePaused}>{autoplay.paused ? <Play size={15} /> : <Pause size={15} />}</button>
+          </>}
         </div>
-      )}
+
+        <div className="property-details" aria-live={autoplay.paused ? "polite" : "off"} aria-atomic="true">
+          <div className="property-identity">
+            <Link href={href} className="property-title">{title}</Link>
+            <p><MapPin size={12} strokeWidth={1.3} />{getProjectLocation(project)}</p>
+          </div>
+          <ul className="property-amenities">
+            {HOME_FEATURES.map(({ text, Icon }) => <li key={text}><Icon size={35} strokeWidth={1} aria-hidden="true" /><span>{text}</span></li>)}
+          </ul>
+          <span className="sr-only">Development {active + 1} of {projects.length}. {getProjectDescription(project)}</span>
+        </div>
+      </motion.div>
+
+      <style jsx>{`
+        .property-stage-anchor { width: 100%; }
+        .property-stage-anchor :global(.property-stage) { width: 100%; transform-origin: center top; }
+        .property-banner { position: relative; width: 100%; aspect-ratio: 1440 / 620; background: #d7d7d7; overflow: hidden; touch-action: pan-y; }
+        .property-banner :global(.property-image-link) { display: block; position: absolute; inset: 0; }
+        .property-arrow { position: absolute; z-index: 1; top: 50%; transform: translateY(-50%); display: flex; align-items: center; justify-content: center; width: 52px; height: 64px; color: white; background: #0002; transition: background .2s; }
+        .property-arrow:hover { background: #0005; }
+        .previous { left: 0; }
+        .next { right: 0; }
+        .property-autoplay { position: absolute; right: 16px; bottom: 16px; display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; border: 1px solid #fff9; border-radius: 50%; color: white; background: #0004; }
+        .property-autoplay:focus-visible { outline: 2px solid white; outline-offset: 3px; }
+        .property-details { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 3fr); align-items: center; width: 83%; max-width: 1320px; min-height: 151px; margin: 0 auto; gap: 26px; padding: 28px 0; }
+        .property-identity { text-align: center; }
+        .property-identity :global(.property-title) { font-family: var(--font-fraunces), Georgia, serif; font-size: 29px; font-weight: 300; font-style: italic; text-transform: uppercase; line-height: 1.15; }
+        .property-identity p { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 12px; font-size: 10px; line-height: 1.5; letter-spacing: .05em; text-transform: uppercase; color: #555; }
+        .property-amenities { display: flex; align-items: stretch; list-style: none; padding: 0; margin: 0; }
+        .property-amenities li { flex: 1; min-width: 0; display: flex; align-items: center; gap: 16px; min-height: 72px; padding: 12px 20px; }
+        .property-amenities li + li { border-left: 1px solid #b99a77; }
+        .property-amenities :global(svg) { flex-shrink: 0; }
+        .property-amenities span { font-size: 11px; line-height: 1.6; text-transform: uppercase; color: #393939; overflow-wrap: anywhere; }
+        .property-banner :global(a:focus-visible), .property-identity :global(a:focus-visible), .property-arrow:focus-visible { outline: 2px solid #171717; outline-offset: -5px; }
+        .property-arrow:focus-visible { outline-color: white; }
+        @media (max-width: 1023px) {
+          .property-details { width: 88%; grid-template-columns: 1fr; gap: 24px; padding: 28px 0; }
+          .property-amenities { justify-content: center; }
+          .property-amenities li { justify-content: center; }
+        }
+        @media (max-width: 639px) {
+          .property-banner { aspect-ratio: 390 / 430; }
+          .property-arrow { width: 44px; height: 56px; }
+          .property-identity :global(.property-title) { font-size: 32px; }
+          .property-details { padding-top: 26px; gap: 24px; }
+          .property-amenities { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+          .property-amenities li { justify-content: flex-start; gap: 10px; padding: 12px; min-height: 78px; }
+          .property-amenities li + li { border-left: 0; }
+          .property-amenities li:nth-child(even) { border-left: 1px solid #b99a77; }
+          .property-amenities li:nth-child(n+3) { border-top: 1px solid #d8d2ca; }
+          .property-amenities :global(svg) { width: 28px; height: 28px; }
+          .property-amenities span { font-size: 10px; }
+        }
+        @media (prefers-reduced-motion: reduce) { .property-arrow { transition: none; } }
+      `}</style>
     </div>
   );
 }
 
-/* -------------------------------------------------------
-   PROPERTY INFORMATION PANEL
-------------------------------------------------------- */
-
-function PropertyInformation({
-  project,
-  index,
-}: {
-  project: Project;
-  index: number;
-}) {
-  const title = getProjectTitle(project);
-  const location = getProjectLocation(project);
-  const href = getProjectHref(project);
-
+export default function FeaturedProjectsSection({ projects }: FeaturedProjectsSectionProps) {
+  if (!projects.length) return null;
   return (
-    <Link
-      href={href}
-      aria-label={`Explore ${title}`}
-      className="group/property relative isolate flex min-w-0 flex-1 flex-col justify-between overflow-hidden bg-[#1c1d1b] px-6 py-8 text-white outline-none sm:px-8 sm:py-10 lg:px-10 lg:py-12 xl:px-14 xl:py-14"
-    >
-      <div className="pointer-events-none absolute inset-0 border border-[#a7a9a6]/20 transition-colors duration-500 group-hover/property:border-[#d9bd8d]/60" />
-
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_90%_90%,rgba(184,151,90,0.17),transparent_60%)] opacity-0 transition-opacity duration-700 group-hover/property:opacity-100"
-      />
-
-      <div className="relative z-10">
-        <div className="mb-7 flex items-center gap-3">
-          <span className="h-px w-7 bg-[#b8975a]" />
-
-          <span className="text-[10px] font-medium uppercase tracking-[0.18em] text-[#c8a977]">
-            Featured Development
-          </span>
-        </div>
-
-        <span className="mb-5 block font-mono text-[10px] tracking-[0.15em] text-white/30">
-          RESIDENCE / {String(index + 1).padStart(2, "0")}
-        </span>
-
-        <h3 className="max-w-[600px] font-[family-name:var(--font-fraunces)] text-[clamp(2.2rem,3.5vw,4.7rem)] font-light leading-[1.06] tracking-[-0.045em] text-[#f5f2ec] transition-colors duration-500 group-hover/property:text-[#f1dfb9]">
-          {title}
-        </h3>
-
-        <div className="mt-6 flex items-start gap-2 text-[#c8a977]">
-          <MapPin
-            size={15}
-            strokeWidth={1.5}
-            className="mt-0.5 shrink-0"
-          />
-
-          <span className="text-[11px] uppercase tracking-[0.13em]">
-            {location}
-          </span>
-        </div>
-
-        <p className="mt-7 max-w-[470px] text-[13px] leading-[1.9] text-white/55 sm:text-[14px]">
-          {getProjectDescription(project)}
-        </p>
-      </div>
-
-      <div className="relative z-10 mt-10 flex items-end justify-between gap-5 border-t border-white/15 pt-6">
-        <div>
-          <span className="mb-2 block text-[9px] uppercase tracking-[0.18em] text-white/45">
-            Discover more
-          </span>
-
-          <span className="text-[11px] font-medium uppercase tracking-[0.12em] text-[#e0c38c]">
-            Explore this development
-          </span>
-        </div>
-
-        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-[#aeb0ab]/40 text-[#e4e4df] transition-all duration-500 group-hover/property:rotate-45 group-hover/property:border-[#e1c58d] group-hover/property:bg-[#c5a36c] group-hover/property:text-[#171714] sm:h-14 sm:w-14">
-          <ArrowUpRight size={21} strokeWidth={1.3} />
-        </span>
-      </div>
-    </Link>
-  );
-}
-
-/* -------------------------------------------------------
-   SIDE-BY-SIDE FEATURED DEVELOPMENT
-------------------------------------------------------- */
-
-function FeaturedDevelopment({
-  project,
-  index,
-}: {
-  project: Project;
-  index: number;
-}) {
-  const reducedMotion = Boolean(useReducedMotion());
-
-  const title = getProjectTitle(project);
-  const images = getProjectImages(project, index);
-
-  return (
-    <motion.article
-      initial={
-        reducedMotion
-          ? false
-          : { opacity: 0, y: 32 }
-      }
-      whileInView={{
-        opacity: 1,
-        y: 0,
-      }}
-      viewport={{
-        once: true,
-        amount: 0.1,
-      }}
-      transition={{
-        duration: 0.85,
-        ease: EASE,
-      }}
-      className="relative flex flex-col overflow-hidden shadow-[0_22px_60px_rgba(20,20,18,0.08)] md:min-h-[470px] md:flex-row lg:min-h-[540px] xl:min-h-[600px]"
-    >
-      {/* LEFT: ANIMATED IMAGE GALLERY */}
-      <div className="relative h-[320px] w-full shrink-0 overflow-hidden sm:h-[420px] md:h-auto md:w-[52%] lg:w-[55%]">
-        <Slideshow
-          images={images}
-          title={title}
-          index={index}
-          priority={index === 0}
-        />
-      </div>
-
-      {/* RIGHT: DEVELOPMENT DETAILS */}
-      <PropertyInformation
-        project={project}
-        index={index}
-      />
-    </motion.article>
-  );
-}
-
-/* -------------------------------------------------------
-   MAIN SECTION
-------------------------------------------------------- */
-
-export default function FeaturedProjectsSection({
-  projects,
-}: FeaturedProjectsSectionProps) {
-  const reducedMotion = Boolean(useReducedMotion());
-  const featured = projects.slice(0, 2);
-
-  if (!featured.length) return null;
-
-  return (
-    <section
-      aria-labelledby="featured-projects-heading"
-      className="relative overflow-hidden bg-[#eeeae3] py-16 text-[#171714] sm:py-24 lg:py-32"
-    >
-      <div className="mx-auto w-[90%] max-w-[1600px]">
-        {/* SECTION LABEL */}
-        <motion.div
-          initial={
-            reducedMotion
-              ? false
-              : { opacity: 0, y: 12 }
-          }
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{
-            duration: 0.7,
-            ease: EASE,
-          }}
-          className="mb-10 flex items-center justify-between gap-4 border-b border-[#171714]/10 pb-5 lg:mb-16"
-        >
-          <div className="flex items-center gap-4">
-            <span className="h-px w-9 bg-[#b8975a]" />
-
-            <span className="text-[10px] font-medium uppercase tracking-[0.24em] text-[#a2824f]">
-              The Collection
-            </span>
-          </div>
-
-          <span className="hidden text-[10px] uppercase tracking-[0.18em] text-[#171714]/35 sm:block">
-            A considered portfolio
-          </span>
-        </motion.div>
-
-        {/* SECTION HEADING */}
-        <div className="mb-12 grid items-end gap-7 lg:mb-16 lg:grid-cols-[1.3fr_0.7fr] lg:gap-16">
-          <motion.div
-            initial={
-              reducedMotion
-                ? false
-                : { opacity: 0, y: 24 }
-            }
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{
-              duration: 0.9,
-              ease: EASE,
-            }}
-          >
-            <span className="mb-4 block font-mono text-[10px] tracking-[0.16em] text-[#a2824f]">
-              01 — THE MEH PORTFOLIO
-            </span>
-
-            <h2
-              id="featured-projects-heading"
-              className="font-[family-name:var(--font-fraunces)] text-[clamp(2.8rem,5vw,6rem)] font-light leading-[1.03] tracking-[-0.055em]"
-            >
-              Places of
-              <span className="block italic text-[#b8975a]">
-                distinction.
-              </span>
-            </h2>
-          </motion.div>
-
-          <motion.div
-            initial={
-              reducedMotion
-                ? false
-                : { opacity: 0, y: 18 }
-            }
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{
-              duration: 0.8,
-              delay: 0.1,
-              ease: EASE,
-            }}
-          >
-            <p className="max-w-[420px] text-[14px] leading-[1.9] text-[#171714]/55 sm:text-[15px]">
-              Discover a curated selection of exceptional
-              spaces, thoughtfully conceived for the way
-              you live and experience the world.
-            </p>
-
-            <Link
-              href="/developments"
-              className="group mt-7 inline-flex items-center gap-4 border-b border-[#b8975a] pb-3 text-[10px] font-medium uppercase tracking-[0.16em] transition-colors hover:text-[#b8975a]"
-            >
-              View all developments
-
-              <ArrowUpRight
-                size={17}
-                strokeWidth={1.2}
-                className="text-[#b8975a] transition-transform group-hover:-translate-y-1 group-hover:translate-x-1"
-              />
-            </Link>
-          </motion.div>
-        </div>
-
-        {/* DEVELOPMENT CARDS */}
-        <div className="space-y-12 sm:space-y-16 lg:space-y-20">
-          {featured.map((project, index) => (
-            <FeaturedDevelopment
-              key={project.id}
-              project={project}
-              index={index}
-            />
-          ))}
-        </div>
-
-        {/* FOOTER */}
-        <div className="mt-16 flex flex-col gap-6 border-t border-[#171714]/10 pt-8 sm:mt-20 sm:flex-row sm:items-center sm:justify-between">
-          <p className="font-[family-name:var(--font-fraunces)] text-[clamp(1.4rem,2.4vw,2.4rem)] font-light italic text-[#514b41]">
-            Discover spaces that speak for themselves.
-          </p>
-
-          <Link
-            href="/developments"
-            className="group inline-flex items-center gap-4 text-[10px] font-medium uppercase tracking-[0.16em] text-[#171714] transition-colors hover:text-[#b8975a]"
-          >
-            Explore the collection
-
-            <span className="flex h-11 w-11 items-center justify-center rounded-full border border-[#171714]/20 transition-all duration-300 group-hover:border-[#b8975a] group-hover:bg-[#b8975a] group-hover:text-white">
-              <MoveUpRight size={18} strokeWidth={1.3} />
-            </span>
-          </Link>
-        </div>
-      </div>
+    <section aria-labelledby="featured-projects-heading" className="meh-property-collection">
+      <header className="collection-heading">
+        <span aria-hidden="true" />
+        <h2 id="featured-projects-heading">Explore our exceptional MEH properties</h2>
+        <span aria-hidden="true" />
+      </header>
+      <p className="collection-introduction">Discover a curated selection of exceptional spaces, thoughtfully conceived for the way you live and experience the world.</p>
+      <ProjectShowcase projects={projects} />
+      <div className="collection-footer"><Link href="/developments" className="collection-explore">Explore all</Link></div>
+      <style jsx>{`
+        .meh-property-collection { position: relative; overflow: hidden; background: #efefef; color: #171717; padding-top: 56px; }
+        .collection-heading { display: flex; align-items: center; justify-content: center; gap: 30px; width: 83%; max-width: 1320px; margin: 0 auto; }
+        .collection-heading > span { flex: 1; height: 1px; background: #dedede; }
+        .collection-heading h2 { margin: 0; max-width: 850px; font-family: 'DM Sans', Arial, sans-serif; font-size: 25px; font-weight: 400; line-height: 1.4; letter-spacing: .055em; text-transform: uppercase; text-align: center; }
+        .collection-introduction { max-width: 760px; padding: 0 24px; margin: 20px auto 36px; font-size: 14px; line-height: 1.8; color: #626262; text-align: center; }
+        .collection-footer { display: flex; justify-content: center; padding: 0 24px 50px; }
+        .collection-footer :global(.collection-explore) { display: inline-flex; align-items: center; justify-content: center; min-width: 264px; min-height: 49px; padding: 14px 28px; border: 1px solid #171717; border-radius: 999px; font-size: 12px; line-height: 1.5; letter-spacing: .22em; text-transform: uppercase; transition: background .25s, color .25s; }
+        .collection-footer :global(.collection-explore:hover) { background: #171717; color: white; }
+        .collection-footer :global(.collection-explore:focus-visible) { outline: 2px solid #171717; outline-offset: 5px; }
+        @media (max-width: 639px) { .meh-property-collection { padding-top: 44px; } .collection-heading { width: 88%; gap: 12px; } .collection-heading h2 { font-size: 19px; letter-spacing: .025em; } .collection-introduction { margin-bottom: 28px; font-size: 13px; } .collection-footer { padding: 10px 24px 50px; } .collection-footer :global(.collection-explore) { min-width: 215px; font-size: 11px; } }
+        @media (prefers-reduced-motion: reduce) { .collection-footer :global(.collection-explore) { transition: none; } }
+      `}</style>
     </section>
   );
 }

@@ -1,208 +1,80 @@
-
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
-import { motion, useReducedMotion } from "framer-motion";
-import { ArrowUpRight, ArrowRight } from "lucide-react";
-
-const EASE = [0.22, 1, 0.36, 1] as const;
+import { ArrowUpRight, Mail, Phone } from "lucide-react";
 
 export default function CTASection() {
-  const reducedMotion = Boolean(useReducedMotion());
-
   return (
-    <section
-      aria-labelledby="cta-heading"
-      className="relative isolate overflow-hidden bg-[#faf9f6] text-[#171714]"
-    >
-      {/* AMBIENT GOLD GLOW */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 overflow-hidden"
-      >
-        <div className="absolute left-1/2 top-[38%] h-[700px] w-[700px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#b8975a]/[0.07] blur-[110px] sm:h-[950px] sm:w-[950px]" />
-
-        <div className="absolute -right-[15%] -top-[40%] h-[700px] w-[700px] rounded-full border border-[#b8975a]/10" />
-
-        <div className="absolute -right-[10%] -top-[30%] h-[580px] w-[580px] rounded-full border border-[#b8975a]/10" />
-
-        <div className="absolute -left-[18%] bottom-[-65%] h-[650px] w-[650px] rounded-full border border-[#b8975a]/10" />
-      </div>
-
-      {/* TOP EDITORIAL RULE */}
-      <div className="relative mx-auto w-[90%] max-w-[1800px]">
-        <div className="flex items-center justify-between gap-4 border-b border-[#171714]/10 py-7">
-          <div className="flex items-center gap-3">
-            <span className="h-px w-9 bg-[#b8975a]" />
-
-            <span className="text-[10px] font-medium uppercase tracking-[0.23em] text-[#9c7b46]">
-              An invitation from MEH
-            </span>
+    <section aria-labelledby="cta-heading" className="meh-consultation">
+      <div className="consultation-layout">
+        <div className="consultation-image">
+          <Image src="/uploads/report/report1.webp" alt="Architectural detail at MEH Empire Estate" fill sizes="(max-width: 1023px) 88vw, 53vw" className="object-cover" />
+          <div className="consultation-shade" aria-hidden="true" />
+          <p className="consultation-eyebrow">An invitation from MEH</p>
+          <div className="consultation-title">
+            <h2 id="cta-heading"><span>Every great place</span><span>begins with</span><em>a conversation.</em></h2>
+            <p>Thoughtful conversations. Meaningful possibilities.</p>
           </div>
-
-          <span className="hidden text-[10px] uppercase tracking-[0.18em] text-[#171714]/35 sm:block">
-            A conversation worth having
-          </span>
+        </div>
+        <div className="consultation-content">
+          <span className="consultation-kicker">Your next chapter</span>
+          <h3>Let&apos;s explore <em>what&apos;s possible.</em></h3>
+          <p>Your next home. A considered investment. A new partnership. Whatever brings you here, we&apos;d be delighted to hear your story.</p>
+          <Link href="/contact" className="consultation-button">Arrange a consultation <ArrowUpRight size={18} strokeWidth={1.3} /></Link>
+          <div className="consultation-direct">
+            <span>Or connect with us directly</span>
+            <a href="tel:+2349159463447"><Phone size={15} strokeWidth={1.3} />+234 915 9463 447</a>
+            <a href="mailto:contactus@meh.ae"><Mail size={15} strokeWidth={1.3} />contactus@meh.ae</a>
+          </div>
+          <Link href="/about" className="consultation-story">Get to know MEH <ArrowUpRight size={14} strokeWidth={1.3} /></Link>
         </div>
       </div>
-
-      {/* MAIN CONTENT */}
-      <div className="relative mx-auto flex w-[90%] max-w-[1800px] flex-col items-center px-1 pb-24 pt-20 text-center sm:pb-32 sm:pt-28 lg:pb-40 lg:pt-36">
-        {/* SMALL GOLD EMBLEM */}
-
-
-        {/* MAIN HEADING */}
-        <motion.h2
-          id="cta-heading"
-          initial={
-            reducedMotion
-              ? false
-              : { opacity: 0, y: 30 }
-          }
-          whileInView={{
-            opacity: 1,
-            y: 0,
-          }}
-          viewport={{ once: true }}
-          transition={{
-            duration: 1,
-            delay: 0.08,
-            ease: EASE,
-          }}
-          className="mt-9 max-w-[1300px] font-[family-name:var(--font-fraunces)] text-[clamp(1.3rem,4.2vw,5rem)] font-light leading-[0.99] tracking-[-0.065em] sm:mt-11"
-        >
-          Every great place
-          <span className="block">
-            begins with
-          </span>
-          <span className="block italic text-[#b8975a]">
-            a conversation.
-          </span>
-        </motion.h2>
-
-        {/* DESCRIPTION */}
-        <motion.p
-          initial={
-            reducedMotion
-              ? false
-              : { opacity: 0, y: 18 }
-          }
-          whileInView={{
-            opacity: 1,
-            y: 0,
-          }}
-          viewport={{ once: true }}
-          transition={{
-            duration: 0.85,
-            delay: 0.16,
-            ease: EASE,
-          }}
-          className="mx-auto mt-10 max-w-[620px] text-[14px] leading-[2] text-[#171714]/55 sm:mt-12 sm:text-[16px]"
-        >
-          Perhaps you have a vision for your next home.
-          An investment you&apos;re considering.
-          Or simply a question worth asking.
-          Whatever brings you here, we&apos;d be delighted
-          to hear your story and explore what&apos;s possible
-          together.
-        </motion.p>
-
-        {/* CONSULTATION BUTTON */}
-        <motion.div
-          initial={
-            reducedMotion
-              ? false
-              : { opacity: 0, y: 18 }
-          }
-          whileInView={{
-            opacity: 1,
-            y: 0,
-          }}
-          viewport={{ once: true }}
-          transition={{
-            duration: 0.85,
-            delay: 0.24,
-            ease: EASE,
-          }}
-          className="mt-12 sm:mt-14"
-        >
-          <Link
-            href="/contact"
-            className="group relative inline-flex min-h-[64px] items-center justify-between gap-12 overflow-hidden rounded-full border border-[#171714] bg-[#171714] px-8 py-4 text-white transition-all duration-500 hover:border-[#b8975a] hover:shadow-[0_20px_55px_-20px_rgba(184,151,90,0.4)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#b8975a] sm:min-h-[74px] sm:gap-20 sm:px-10"
-          >
-            {/* GOLD HOVER FILL */}
-            <span
-              aria-hidden="true"
-              className="absolute inset-0 origin-left scale-x-0 bg-[#b8975a] transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-x-100"
-            />
-
-            <span className="relative z-10 text-[10px] font-medium uppercase tracking-[0.18em] sm:text-[11px]">
-              Arrange a consultation
-            </span>
-
-            <span className="relative z-10 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/30 transition-all duration-500 group-hover:rotate-45 group-hover:border-white/70">
-              <ArrowUpRight
-                size={18}
-                strokeWidth={1.4}
-              />
-            </span>
-          </Link>
-        </motion.div>
-
-        {/* SUBTLE FOOTNOTE */}
-        <motion.div
-          initial={
-            reducedMotion
-              ? false
-              : { opacity: 0 }
-          }
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          transition={{
-            duration: 1,
-            delay: 0.4,
-          }}
-          className="mt-10 flex items-center justify-center gap-3"
-        >
-          <span className="h-1 w-1 rounded-full bg-[#b8975a]" />
-
-          <span className="text-[10px] uppercase tracking-[0.18em] text-[#171714]/40">
-            Thoughtful conversations. Meaningful possibilities.
-          </span>
-
-          <span className="h-1 w-1 rounded-full bg-[#b8975a]" />
-        </motion.div>
-      </div>
-
-      {/* BOTTOM EDITORIAL STRIP */}
-      <div className="relative border-t border-[#171714]/10">
-        <div className="mx-auto flex w-[90%] max-w-[1800px] flex-col gap-5 py-7 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-4">
-            <span className="font-[family-name:var(--font-fraunces)] text-[19px] font-light italic text-[#b8975a]">
-              MEH Realty
-            </span>
-
-            <span className="h-4 w-px bg-[#171714]/15" />
-
-            <span className="text-[10px] uppercase tracking-[0.15em] text-[#171714]/40">
-              Beyond the expected
-            </span>
-          </div>
-
-          <Link
-            href="/about"
-            className="group inline-flex w-fit items-center gap-3 text-[10px] uppercase tracking-[0.16em] text-[#171714]/55 transition-colors hover:text-[#b8975a]"
-          >
-            Get to know us
-
-            <ArrowRight
-              size={15}
-              strokeWidth={1.4}
-              className="transition-transform duration-300 group-hover:translate-x-1"
-            />
-          </Link>
-        </div>
-      </div>
+      <style jsx>{`
+        .meh-consultation { background: white; color: #171717; padding: 36px 0 80px; }
+        .consultation-layout { display: grid; grid-template-columns: 1.4fr 1fr; width: 83%; max-width: 1320px; margin: 0 auto; }
+        .consultation-image { position: relative; min-height: 600px; overflow: hidden; background: #333; color: white; }
+        .consultation-shade { position: absolute; inset: 0; background: linear-gradient(180deg, #0003 0%, transparent 35%, #0009 75%, #000b 100%); pointer-events: none; }
+        .consultation-eyebrow { position: absolute; top: 40px; left: 40px; right: 40px; font-size: 10px; letter-spacing: .22em; text-transform: uppercase; }
+        .consultation-title { position: absolute; left: 40px; right: 40px; bottom: 48px; }
+        .consultation-title h2 { max-width: 580px; margin: 0; font-family: var(--font-fraunces), Georgia, serif; font-weight: 300; font-size: clamp(38px, 3.8vw, 60px); line-height: 1.12; letter-spacing: -.035em; }
+        .consultation-title h2 em { display: block; margin-top: 5px; color: #e6d2ac; }
+        .consultation-title h2 span { display: block; }
+        .consultation-title p { margin-top: 26px; font-size: 11px; letter-spacing: .09em; line-height: 1.8; color: #ffffffe0; }
+        .consultation-content { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; padding: 54px 44px; background: #f2f0eb; }
+        .consultation-kicker { font-size: 10px; line-height: 1.5; letter-spacing: .2em; text-transform: uppercase; color: #8c744c; }
+        .consultation-content h3 { margin: 24px 0 0; font-family: var(--font-fraunces), Georgia, serif; font-size: clamp(30px, 2.7vw, 43px); font-weight: 300; line-height: 1.2; letter-spacing: -.035em; }
+        .consultation-content h3 em { display: block; }
+        .consultation-content > p { margin-top: 24px; max-width: 370px; font-size: 14px; line-height: 1.9; color: #62615c; }
+        .consultation-content :global(.consultation-button) { display: inline-flex; align-items: center; justify-content: space-between; width: 100%; gap: 20px; margin-top: 32px; padding: 17px 24px; min-height: 56px; border: 1px solid #171717; border-radius: 999px; background: #171717; color: white; font-size: 10px; line-height: 1.5; text-transform: uppercase; letter-spacing: .14em; transition: background .25s, border-color .25s; }
+        .consultation-content :global(.consultation-button:hover) { background: #746040; border-color: #746040; }
+        .consultation-direct { display: flex; flex-direction: column; align-items: flex-start; gap: 13px; width: 100%; margin-top: 30px; padding-top: 24px; border-top: 1px solid #d9d4c9; }
+        .consultation-direct > span { font-size: 11px; color: #77736b; margin-bottom: 3px; }
+        .consultation-direct a { display: inline-flex; align-items: center; gap: 12px; font-size: 13px; line-height: 1.7; }
+        .consultation-content :global(.consultation-story) { display: inline-flex; align-items: center; gap: 12px; margin-top: 25px; min-height: 32px; font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: #6f614a; }
+        .consultation-direct a:hover { text-decoration: underline; text-underline-offset: 4px; }
+        .consultation-content :global(a:focus-visible) { outline: 2px solid #746040; outline-offset: 5px; }
+        @media (max-width: 1023px) {
+          .consultation-layout { width: 88%; grid-template-columns: 1fr; }
+          .consultation-image { min-height: 460px; }
+          .consultation-content { padding: 44px; }
+          .consultation-content h3 { font-size: 40px; }
+          .consultation-content > p { max-width: 580px; }
+          .consultation-content :global(.consultation-button) { width: auto; min-width: 290px; }
+        }
+        @media (max-width: 639px) {
+          .meh-consultation { padding: 12px 0 48px; }
+          .consultation-image { min-height: 420px; }
+          .consultation-eyebrow { top: 28px; left: 26px; right: 26px; font-size: 9px; }
+          .consultation-title { left: 26px; right: 26px; bottom: 34px; }
+          .consultation-title h2 { font-size: 37px; }
+          .consultation-title p { font-size: 10px; margin-top: 20px; }
+          .consultation-content { padding: 36px 26px; }
+          .consultation-content h3 { font-size: 35px; }
+          .consultation-content :global(.consultation-button) { width: 100%; min-width: 0; padding-inline: 20px; }
+        }
+        @media (prefers-reduced-motion: reduce) { .consultation-content :global(.consultation-button) { transition: none; } }
+      `}</style>
     </section>
   );
 }
